@@ -5,20 +5,25 @@ library(plotly)
 ui <- fluidPage(
   
   
-  titlePanel(
-    
-    fluidRow(
-      
-      column(9,"TunnelGoalFitts Visualizer (Cohort 2020)"),                           #Title
-      
-      column(3,                                                                    #DropDown
-             
-             
-             verbatimTextOutput('outtt'),
-             selectInput('in1', 
-                         '',
-                         c(Choose='', state.name), selectize=FALSE)
-      )
+  # titlePanel(
+  
+  fluidRow(
+    #Title
+    column(9,
+           titlePanel(title = "TunnelGoalFitts Visualizer (Cohort 2020)")
+    ),                            
+    #Icon
+    column(1,
+           style = "margin-top: 20px; text-align: right;",
+           icon("user", class = "fa-2x")                                                  
+    ),
+    #DropDown
+    column(2,
+           style = "margin-top: 20px;",
+           selectInput('in1', 
+                       NULL,
+                       c(Choose='', state.name), selectize=FALSE
+           )
     )
   ),
   
@@ -41,17 +46,12 @@ ui <- fluidPage(
                          
                          
                          
-                         
-                       
-                         
-                         
-                      
                          mainPanel(
                            
                            plotlyOutput("plot1"),
                            selectInput('in1', '', c(Choose='', state.name), selected = 'Index of Difficulty', selectize=FALSE)
                          )
-                       ),
+                       )
                        
                        
                        
@@ -80,8 +80,8 @@ ui <- fluidPage(
                     plotlyOutput("plot2"),
                     selectInput('in1', '', c(Choose='', state.name), selectize=FALSE)
                   )
-                ),
-                
                 )
+                
+              )
   )
 )
