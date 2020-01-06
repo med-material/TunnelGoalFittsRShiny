@@ -20,24 +20,32 @@ ui <- fluidPage(
     #DropDown
     column(2,
            style = "margin-top: 20px;",
-           selectInput('in1', 
+
+           selectInput("mail",
                        NULL,
-                       c(Choose='', state.name), selectize=FALSE
-           )
+                       choices = GenerateSelectChoices(default = "Everyone's Data", text = "", fieldName = "UserID")
+                       ),          
     )
+
   ),
   
   
   
+  
   tabsetPanel(type = "tab",
+              
               
               tabPanel(strong("Test Details"), 
                        
                        sidebarLayout(
                          # Inputs
                          sidebarPanel(
+
                            
-                           selectInput('in1', 'Choose Test', c(Choose='', state.name), selectize=FALSE),
+                           selectInput("Test",
+                                       "Choose Test",
+                                       choices = GenerateSelectChoices(default = "", text = "", fieldName = "SessionTime")
+                           ),   
                            
                            p("Test Details")
                            #RebderText To generate the text
@@ -49,13 +57,12 @@ ui <- fluidPage(
                          mainPanel(
                            
                            plotlyOutput("plot1"),
-                           selectInput('in1', '', c(Choose='', state.name), selected = 'Index of Difficulty', selectize=FALSE)
+                           selectInput("Index",
+                                       NULL,
+                                       choices = GenerateSelectChoices(default = "Index of Difficulty", text = "", fieldName = "GameType")),
+                           
                          )
                        )
-                       
-                       
-                       
-                       
               ),
               
               tabPanel(
@@ -65,23 +72,33 @@ ui <- fluidPage(
                   # Inputs
                   sidebarPanel(
                     
-                    selectInput('in1', 'Test Type', c(Choose='',state.name), selectize=FALSE),
+                  selectInput("Type",
+                              "Test Type",
+                              choices = GenerateSelectChoices(default = "Fitts", text = "", fieldName = "GameType")),
                     
-                    p("Input To Compare : "),
                     
-                    radioButtons("button",
-                                 "Compare Human Performance to..",
-                                 c("Eyes and Eyes tracker", "Nose and Mouse", "Right Hand and Mouse"))
+                    
+                  checkboxGroupInput("comparaison", "Input To Compare:",
+                                     c("Cylinders" = "cyl",
+                                       "Transmission" = "am",
+                                       "Gears" = "gear")),            
+                  
+                    # radioButtons("button",
+                    #              "Compare Human Performance to..",
+                    #              c("Eyes and Eyes tracker", "Nose and Mouse", "Right Hand and Mouse"))
                     
                   ),
                   
                   mainPanel(
                     
                     plotlyOutput("plot2"),
-                    selectInput('in1', '', c(Choose='', state.name), selectize=FALSE)
+                    selectInput("Index2",
+                                NULL,
+                                choices = GenerateSelectChoices(default = "Index of Difficulty", text = "", fieldName = "GameType")),
                   )
                 )
                 
               )
   )
+
 )

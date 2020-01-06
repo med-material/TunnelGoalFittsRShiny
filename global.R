@@ -27,7 +27,7 @@ FetchDatas <- function(conditionLists = list(), option = "*")
 GenerateQuery <- function(conditionLists, option)
 {
   queryString = paste("SELECT", option, sep = " ")
-  queryString = paste(queryString, "FROM reactiontime", sep = " ")
+  queryString = paste(queryString, "FROM tunnel_fit_test", sep = " ")
   
   if (length(conditionLists) == 0)
   {
