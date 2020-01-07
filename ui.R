@@ -41,14 +41,17 @@ ui <- fluidPage(
                          # Inputs
                          sidebarPanel(
 
+                           uiOutput("Test"),
                            
-                           selectInput("Test",
-                                       "Choose Test",
-                                       choices = GenerateSelectChoices(default = "", text = "", fieldName = "SessionTime")
-                           ),   
                            
-                           p("Test Details")
+                           
+                           p("Test Details"),
                            #RebderText To generate the text
+                           textOutput("GameType"),
+                           textOutput("HitType"),
+                           textOutput("Average"),
+                           textOutput("WrongHits")
+                          
                            
                          ),
                          
@@ -82,10 +85,7 @@ ui <- fluidPage(
                                      c("Cylinders" = "cyl",
                                        "Transmission" = "am",
                                        "Gears" = "gear")),            
-                  
-                    # radioButtons("button",
-                    #              "Compare Human Performance to..",
-                    #              c("Eyes and Eyes tracker", "Nose and Mouse", "Right Hand and Mouse"))
+
                     
                   ),
                   

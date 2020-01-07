@@ -94,8 +94,9 @@ GenerateSelectChoices <- function(default = "", text = "", fieldName, conditions
       {
         print(j)
         tempContitions <- conditions
-        tempContitions[[length(tempContitions) + 1]] <- paste(toString(fieldName), " = ", fieldList[[i]], sep = "")
-        extraText[[j]] <- GetField(extraInfo[[j]], FetchDatas(tempContitions, paste("DISTINCT", extraInfo[[j]])))[[1]]
+        tempContitions[[length(tempContitions) + 1]] <- paste(toString(fieldName), " = '", fieldList[[i]], "'", sep = "")
+        returnTable <- GetField(extraInfo[[j]], FetchDatas(tempContitions, paste("DISTINCT", extraInfo[[j]])))
+        extraText[[j]] <- returnTable[[(length(returnTable))]]
         print("test")
       }
       
