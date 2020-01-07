@@ -1,21 +1,23 @@
 server = function(input, output, session) {
   
-  output$Test <- renderUI({selectInput("Test",
-                                       "Choose Test",
-                                       choices = GenerateSelectChoices(default = "", text = "", fieldName = "DateId", extraInfo = list("SessionTime"))
-  )})
-  
+  # output$Test <- renderUI({selectInput("Test",
+  #                                      "Choose Test",
+  #                                      choices = GenerateSelectChoices(default = "", text = "", fieldName = "DateId", extraInfo = list("SessionTime"))
+  # )})
+  # 
   
   
   observeEvent({input$mail},{
     var<-list()
+    
     if (input$mail != -1){
       var = list(list(paste("UserId = '", input$mail, "'", sep = "")))
     }
-    output$Test <- renderUI({selectInput("Test",
-                                         "Choose Test",
-                                         choices = GenerateSelectChoices(default = "All Tests", text = "", fieldName = "DateId", extraInfo = list("SessionTime"), conditions = var)
-    )})
+    output$Test <- renderUI(
+      {selectInput("Test",
+                   "Choose Test",
+                   choices = GenerateSelectChoices(default = "All Tests", text = "", fieldName = "DateId", extraInfo = list("SessionTime"), extracaract = " seconds", conditions = var)
+      )})
     
     observeEvent({input$Test},{
       var2<-list()

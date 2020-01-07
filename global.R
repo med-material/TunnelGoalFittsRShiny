@@ -74,7 +74,7 @@ CountField <- function(fieldName = "*", conditions = list())
 }
 
 
-GenerateSelectChoices <- function(default = "", text = "", fieldName, conditions = list(), extraInfo = list())
+GenerateSelectChoices <- function(default = "", text = "", fieldName, conditions = list(), extraInfo = list(), extracaract = "")
 {
   tempList <- list()
   tempList[[default]] <- -1
@@ -120,7 +120,7 @@ GenerateSelectChoices <- function(default = "", text = "", fieldName, conditions
     
     if(extraTextString != "")
     {
-      extraTextString <- paste("(", extraTextString, ")", sep = "")
+      extraTextString <- paste("(", extraTextString, extracaract, ")", sep = "")
       resultString <- paste(resultString, extraTextString, sep = " ")
     }
     
