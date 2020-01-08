@@ -20,13 +20,13 @@ ui <- fluidPage(
     #DropDown
     column(2,
            style = "margin-top: 20px;",
-
+           
            selectInput("mail",
                        NULL,
                        choices = GenerateSelectChoices(default = "Everyone's Data", text = "", fieldName = "UserID")
-                       ),          
+           ),          
     )
-
+    
   ),
   
   
@@ -40,7 +40,7 @@ ui <- fluidPage(
                        sidebarLayout(
                          # Inputs
                          sidebarPanel(
-
+                           
                            uiOutput("Test"),
                            
                            
@@ -51,7 +51,7 @@ ui <- fluidPage(
                            textOutput("HitType"),
                            textOutput("Average"),
                            textOutput("WrongHits")
-                          
+                           
                            
                          ),
                          
@@ -60,9 +60,12 @@ ui <- fluidPage(
                          mainPanel(
                            
                            plotlyOutput("plot1"),
+                           
                            selectInput("Index",
                                        NULL,
-                                       choices = GenerateSelectChoices(default = "Index of Difficulty", text = "", fieldName = "GameType")),
+                                       choices = GenerateSelectChoices(default = "Index of Difficulty", 
+                                                                       fieldName = "GameType"),
+                                       selected = "Index of Difficulty")
                            
                          )
                        )
@@ -75,30 +78,32 @@ ui <- fluidPage(
                   # Inputs
                   sidebarPanel(
                     
-                  selectInput("Type",
-                              "Test Type",
-                              choices = GenerateSelectChoices(default = "Fitts", text = "", fieldName = "GameType")),
+                    selectInput("Type",
+                                "Test Type",
+                                choices = GenerateSelectChoices(default = "Fitts", text = "", fieldName = "GameType")),
                     
                     
                     
-                  checkboxGroupInput("comparaison", "Input To Compare:",
-                                     c("Cylinders" = "cyl",
-                                       "Transmission" = "am",
-                                       "Gears" = "gear")),            
-
+                    checkboxGroupInput("comparaison", "Input To Compare:",
+                                       c("Cylinders" = "cyl",
+                                         "Transmission" = "am",
+                                         "Gears" = "gear")),            
+                    
                     
                   ),
                   
                   mainPanel(
                     
                     plotlyOutput("plot2"),
+                    
                     selectInput("Index2",
                                 NULL,
-                                choices = GenerateSelectChoices(default = "Index of Difficulty", text = "", fieldName = "GameType")),
+                                choices = GenerateSelectChoices(default = "Index of Difficulty", text = "", fieldName = "GameType"),
+                    ),
                   )
                 )
                 
               )
   )
-
+  
 )
