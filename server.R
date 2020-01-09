@@ -57,37 +57,61 @@ server = function(input, output, session) {
     var2<-list()
     i <- 1
 
+    # if (input$Test != -1){
+    #   if (!mailUpdated)
+    #   {
+    #     var2[[i]] <- list(list(paste("DateId = '", input$Test, "'", sep = "")))
+    #     i = i+1
+    #   }
+    # }
+    # 
+    # 
+    # if (input$mail != -1){
+    #   var2[[i]] <- list(list(paste("UserId = '", input$mail, "'", sep = "")))
+    #   i = i+1
+    # }
+    
+    # tempVar <- FetchDatas(conditionLists = var2, option = 'TargetsDistance, TargetDiameter, DeltaTime, UserId, GameType')
+    tempVar <- FetchDatas(option = 'TargetsDistance, TargetDiameter, DeltaTime, UserId, GameType, DateId')
+    tempVar2 <- tempVar
+    
+    if (input$mail != -1){
+      tempVar2 <- subset(tempVar2, tempVar2$UserId == input$mail)
+    }
+    
     if (input$Test != -1){
       if (!mailUpdated)
       {
-        var2[[i]] <- list(list(paste("DateId = '", input$Test, "'", sep = "")))
-        i = i+1
+        tempVar2 <- subset(tempVar2, tempVar2$DateId == input$Test)
       }
     }
     
-
-    if (input$mail != -1){
-      var2[[i]] <- list(list(paste("UserId = '", input$mail, "'", sep = "")))
-      i = i+1
+    tempVar2$DifficultyIndex <- numeric(length(tempVar2["DeltaTime"]))
+    tempVar$DifficultyIndex <- numeric(length(tempVar["DeltaTime"]))
+    
+    # DeltaTime <- tempVar["DeltaTime"]
+    # 
+    # UserId <- tempVar["UserId"]
+    # 
+    # GameType <- tempVar["GameType"]
+    # 
+    # tempVar2 <- data.frame(DifficultyIndex, DeltaTime, UserId, GameType)
+    
+    for (i in 1:nrow(tempVar2)) {
+      
+      tempVar2[i, "DifficultyIndex"] <- log2((strtoi(tempVar2[i, "TargetDiameter"]) / strtoi(tempVar2[i, "TargetsDistance"]))+1)
+      
     }
-    
-    tempVar <- FetchDatas(conditionLists = var2, option = 'TargetsDistance, TargetDiameter, DeltaTime, UserId, GameType')
-    
-    DifficultyIndex <- numeric(length(tempVar["DeltaTime"]))
-    
-    DeltaTime <- tempVar["DeltaTime"]
-    
-    UserId <- tempVar["UserId"]
-    
-    GameType <- tempVar["GameType"]
-    
-    tempVar2 <- data.frame(DifficultyIndex, DeltaTime, UserId, GameType)
     
     for (i in 1:nrow(tempVar)) {
       
-      tempVar2[i, "DifficultyIndex"] <- log2((strtoi(tempVar[i, "TargetDiameter"]) / strtoi(tempVar[i, "TargetsDistance"]))+1)
+      tempVar[i, "DifficultyIndex"] <- log2((strtoi(tempVar[i, "TargetDiameter"]) / strtoi(tempVar[i, "TargetsDistance"]))+1)
       
     }
+    
+    tempVar3 <- do.call(rbind, lapply(split(tempVar,as.factor(tempVar$DifficultyIndex)), function(x) {return(x[which.max(x$DeltaTime),])}))
+    tempVar4 <- do.call(rbind, lapply(split(tempVar,as.factor(tempVar$DifficultyIndex)), function(x) {return(x[which.min(x$DeltaTime),])}))
+    
     
     output$dropdown_index <- renderUI({
       selectInput("Index",
@@ -100,25 +124,51 @@ server = function(input, output, session) {
     
     # pal <- c("red", "yellow", "green", "blue", "pink")
     
-    var3 <- ~UserId
+    var3 <- tempVar2$UserId
     
     if (input$mail != -1 & input$Test == -1)
     {
-      var3 <- ~GameType
+      var3 <- tempVar2$GameType
     }
     if (input$Test != -1)
     {
       var3 <- NULL
     }
+
+    #    output$plot1 <- renderPlotly(
+    # plot_ly(data = tempVar3, x = ~DifficultyIndex, y = ~DeltaTime, type = 'scatter', mode = 'lines',
+    #         fillcolor='rgba(0,100,80,0.2)', line = list(color = 'transparent'),
+    #         showlegend = FALSE)%>%
+    # 
+    #   add_trace(data = tempVar4, x = ~DifficultyIndex, y = ~DeltaTime, type = 'scatter', mode = 'lines',
+    #             fill = 'tonexty', fillcolor='rgba(0,100,80,0.2)', line = list(color = 'transparent'),
+    #             showlegend = FALSE)  %>%
+    # 
+    #   add_trace(type = 'scatter',
+    #             mode='markers',
+    #             color = var3 ,
+    #             # colors = pal,
+    #             data = tempVar2, x=~DifficultyIndex, y=~DeltaTime, showlegend = TRUE)
+    
     
     output$plot1 <- renderPlotly(
       plot_ly(type = 'scatter',
               mode='markers',
               color = var3 ,
               # colors = pal,
-              data = tempVar2, x=~DifficultyIndex, y=~DeltaTime) %>% 
-        layout(xaxis = list(title = ""), 
-               yaxis = list(title = "Movment Time (s)"))
+              data = tempVar2, x=~DifficultyIndex, y=~DeltaTime) %>%
+
+        add_trace(data = tempVar3, x = ~DifficultyIndex, y = ~DeltaTime, type = 'scatter', mode = 'lines', color = NULL,
+ fillcolor='rgba(0,100,80,0.2)', line = list(color = 'transparent'),
+                  showlegend = FALSE)%>%
+
+        add_trace(data = tempVar4, x = ~DifficultyIndex, y = ~DeltaTime, type = 'scatter', mode = 'lines', color = NULL,
+                  fill = 'tonexty', fillcolor='rgba(1,1,1,0.1)', line = list(color = 'transparent'),
+                  showlegend = FALSE)
+      %>%
+        layout(xaxis = list(title = ""),
+               yaxis = list(title = "Movment Time (s)"),
+               legend = list(orientation = 'h'))
     )
   }
 }
