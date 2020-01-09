@@ -78,13 +78,17 @@ server = function(input, output, session) {
       i = i+1
     }
     
-    tempVar <- FetchDatas(conditionLists = var2, option = 'TargetsDistance, TargetDiameter, DeltaTime')
+    tempVar <- FetchDatas(conditionLists = var2, option = 'TargetsDistance, TargetDiameter, DeltaTime, UserId, GameType')
     
     DifficultyIndex <- numeric(length(tempVar["DeltaTime"]))
     
     DeltaTime <- tempVar["DeltaTime"]
     
-    tempVar2 <- data.frame(DifficultyIndex, DeltaTime)
+    UserId <- tempVar["UserId"]
+    
+    GameType <- tempVar["GameType"]
+    
+    tempVar2 <- data.frame(DifficultyIndex, DeltaTime, UserId, GameType)
     
     for (i in 1:nrow(tempVar)) {
       
@@ -100,8 +104,25 @@ server = function(input, output, session) {
       )
     })
     
+    
+    # pal <- c("red", "yellow", "green", "blue", "pink")
+    
+    var3 <- ~UserId
+    
+    if (input$mail != -1 & input$Test == -1)
+    {
+      var3 <- ~GameType
+    }
+    if (input$Test != -1)
+    {
+      var3 <- NULL
+    }
+    
     output$plot1 <- renderPlotly(
-      plot_ly(type = 'scatter',mode='markers',
+      plot_ly(type = 'scatter',
+              mode='markers',
+              color = var3 ,
+              # colors = pal,
               data = tempVar2, x=~DifficultyIndex, y=~DeltaTime) %>% 
         layout(xaxis = list(title = ""), 
                yaxis = list(title = "Movment Time (s)"))
