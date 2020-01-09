@@ -50,7 +50,9 @@ ui <- fluidPage(
                            textOutput("GameType"),
                            textOutput("HitType"),
                            textOutput("Average"),
-                           textOutput("WrongHits")
+                           textOutput("WrongHits"),
+                           textOutput("Type"),
+                           textOutput("Respond")
                            
                            
                          ),
