@@ -1,5 +1,3 @@
-firstGen <- TRUE
-
 server = function(input, output, session) {
   
   observeEvent({input$mail},{
@@ -50,19 +48,16 @@ server = function(input, output, session) {
   
   UpdateDisplayedIndex <- function(mailUpdated)
   {
-    
-    if(firstGen)
+    if(is.null(input$Test) | is.null(input$mail))
     {
-      firstGen <<- FALSE
       return()
     }
     
+    
     var2<-list()
     i <- 1
-    if (is.null(input$Test)) {
-      var2[[i]] <- NULL
-    }
-    else if (input$Test != -1){
+
+    if (input$Test != -1){
       if (!mailUpdated)
       {
         var2[[i]] <- list(list(paste("DateId = '", input$Test, "'", sep = "")))
@@ -70,10 +65,8 @@ server = function(input, output, session) {
       }
     }
     
-    if (is.null(input$mail)) {
-      var2[[i]] <- NULL
-    }
-    else if (input$mail != -1){
+
+    if (input$mail != -1){
       var2[[i]] <- list(list(paste("UserId = '", input$mail, "'", sep = "")))
       i = i+1
     }
