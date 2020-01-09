@@ -61,11 +61,12 @@ ui <- fluidPage(
                            
                            plotlyOutput("plot1"),
                            
-                           selectInput("Index",
-                                       NULL,
-                                       choices = GenerateSelectChoices(default = "Index of Difficulty", 
-                                                                       fieldName = "GameType"),
-                                       selected = "Index of Difficulty")
+                           # selectInput("Index",
+                           #             "Index of Difficulty",
+                           #             choices = GenerateSelectChoices(default = "Index of Difficulty", 
+                           #                                             fieldName = "GameType"),
+                           #             selected = "Index of Difficulty")
+                           uiOutput("dropdown_index")
                            
                          )
                        )

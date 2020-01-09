@@ -1,7 +1,7 @@
 library(RMySQL)
 
 my_data <- read.csv("credentials.csv", header=TRUE,sep=",", colClasses=c("character","character","character","character"))
-print(my_data[1, "host"])
+# print(my_data[1, "host"])
 
 lapply( dbListConnections( dbDriver( drv = "MySQL")), dbDisconnect)
 
@@ -19,7 +19,7 @@ mydb = dbConnect(MySQL(),
 FetchDatas <- function(conditionLists = list(), option = "*")
 {
   queryString = GenerateQuery(conditionLists, option)
-  print(dbGetQuery(mydb, queryString))
+  # print(dbGetQuery(mydb, queryString))
   return(dbGetQuery(mydb, queryString))
 }
 
@@ -31,7 +31,7 @@ GenerateQuery <- function(conditionLists, option)
   
   if (length(conditionLists) == 0)
   {
-    print(queryString)
+    # print(queryString)
     return(queryString)
   }
   
@@ -55,7 +55,7 @@ GenerateQuery <- function(conditionLists, option)
       queryString = paste(queryString, listLink, sep = " ")
     }
   }
-  print(queryString)
+  # print(queryString)
   return(queryString)
 }
 
