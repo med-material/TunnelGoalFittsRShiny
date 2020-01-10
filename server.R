@@ -16,7 +16,14 @@ server = function(input, output, session) {
                    
       )})
     
+    output$TestType <- renderUI(
+      {selectInput("TestType",
+                   "Test Type",
+                   choices = GenerateSelectChoices(default = "All Types", text = "", fieldName = "GameType", conditions = var)
+      )})
+    
     UpdateDisplayedIndex(TRUE)
+    UpdatePlot2(TRUE)
   })
   
   
@@ -31,7 +38,7 @@ server = function(input, output, session) {
       output$Respond <- renderText(paste("Responder :", GetField("InputResponders", FetchDatas(conditionLists = list(list(paste("DateId = '", input$Test, "'", sep = ""))), option="DISTINCT InputResponders")), sep = " "))  
       
       
-      }
+    }
     else
     {
       output$GameType <- renderText("")
@@ -45,12 +52,177 @@ server = function(input, output, session) {
     UpdateDisplayedIndex(FALSE)
   })
   
+  observe({
+    UpdatePlot2(FALSE)
+  })
+  
   
   
   
   output$plot2 <- renderPlotly(
     plot_ly(type = 'scatter',mode='markers') %>% layout(xaxis = list(title = ""), yaxis = list(title = "Movment Time (s)"))
   )
+  
+  
+  
+  UpdatePlot2 <- function(mailUpdated)
+  {
+    if(is.null(input$TestType) | is.null(input$mail))
+    {
+      return()
+    }
+    
+    conditionsList <- input$comparaison
+    conditionValue <- NULL
+    
+    if (length(conditionsList) != 0)
+      for (i in 1:length(conditionsList))
+      {
+        if(i == 1)
+        {
+          conditionValue <- gsub(" ", "", paste("InputType = '", conditionsList[[i]], "'"))
+        }
+        else
+        {
+          conditionValue <- paste(conditionValue, " OR ", gsub(" ", "", paste("InputType = '", conditionsList[[i]], "'")))
+        }
+        
+      }
+    
+    # print(conditionValue)
+    
+    # if (input$comparaison.eye != -1){
+    #   if (!mailUpdated)
+    #   {
+    #     var2[[i]] <- list(list(paste("DateId = '", input$Test, "'", sep = "")))
+    #     i = i+1
+    #   }
+    # }
+    # 
+    # 
+    # if (input$mail != -1){
+    #   var2[[i]] <- list(list(paste("UserId = '", input$mail, "'", sep = "")))
+    #   i = i+1
+    # }
+    
+    
+    
+    tempVar <- FetchDatas(option = 'TargetsDistance, TargetDiameter, DeltaTime, UserId, GameType, DateId, InputType', conditionLists = conditionValue)
+    tempVar2 <- tempVar
+    
+    print(length(which(tempVar$UserId == input$mail)))
+    
+    if(input$TestType != -1)
+    {
+      if ((length(which(tempVar$GameType == input$TestType)) == 0))
+      {
+        output$plot2 <- renderPlotly(
+          plot_ly(type = 'scatter',
+                  mode='markers',
+                  color = tempVar2$InputType ,
+                  # colors = pal,
+          ) %>%
+            layout(xaxis = list(title = ""),
+                   yaxis = list(title = "Movment Time (s)"),
+                   legend = list(orientation = 'h'))
+        )
+        return()
+      }
+    }
+    
+    
+    
+    if(input$mail != -1)
+    {
+      if (length(which(tempVar$UserId == input$mail)) == 0)
+      {
+        output$plot2 <- renderPlotly(
+          plot_ly(type = 'scatter',
+                  mode='markers',
+                  color = tempVar2$InputType ,
+                  # colors = pal,
+          ) %>%
+            layout(xaxis = list(title = ""),
+                   yaxis = list(title = "Movment Time (s)"),
+                   legend = list(orientation = 'h'))
+        )
+        return()
+      }
+    }
+    
+    
+    
+    if (input$mail != -1){
+      tempVar2 <- subset(tempVar2, tempVar2$UserId == input$mail)
+    }
+    
+    if (input$TestType != -1){
+      if (!mailUpdated)
+      {
+        tempVar2 <- subset(tempVar2, tempVar2$GameType == input$TestType)
+      }
+    }
+    
+    tempVar2$DifficultyIndex <- numeric(length(tempVar2["DeltaTime"]))
+    
+    
+    for (i in 1:nrow(tempVar2)) {
+      
+      tempVar2[i, "DifficultyIndex"] <- log2((strtoi(tempVar2[i, "TargetDiameter"]) / strtoi(tempVar2[i, "TargetsDistance"]))+1)
+      
+    }
+    
+    
+    
+    
+    # var3 <- tempVar2$UserId
+    # 
+    # if (input$mail != -1 & input$TestType == -1)
+    # {
+    #   var3 <- tempVar2$GameType
+    # }
+    # if (input$TestType != -1 & input$mail != -1)
+    # {
+    #   var3 <- tempVar2$DateId
+    # }
+    
+    p <- plot_ly(type = 'scatter',
+                 mode='markers',
+                 color = tempVar2$InputType ,
+                 # colors = pal,
+                 data = tempVar2, x=~DifficultyIndex, y=~DeltaTime) %>%
+      layout(xaxis = list(title = ""),
+             yaxis = list(title = "Movment Time (s)"),
+             legend = list(orientation = 'h'))
+    
+    
+    
+    
+    
+    
+    if(length(unique(tempVar2$InputType)) == 1)
+    {
+      p <- add_lines(p, x = ~DifficultyIndex, y = tempVar2 %>% filter(!is.na(DifficultyIndex)) %>% lm(DeltaTime ~ DifficultyIndex,.) %>% fitted.values())
+    }
+    else
+    {
+      p <- add_lines(p, x = ~DifficultyIndex, y = tempVar2 %>% filter(!is.na(DifficultyIndex)) %>% lm(DeltaTime ~ DifficultyIndex*DifficultyIndex,.) %>% fitted.values())
+    }
+    
+    for(i in 1:length(unique(tempVar2$InputType))){
+      patate <- tempVar2[tempVar2$InputType == unique(tempVar2$InputType)[i], ]
+      
+      reg <-lm(DifficultyIndex ~ DeltaTime, data = patate)
+      
+    }
+    
+    
+    
+    
+    output$plot2 <- renderPlotly(p)
+    
+    
+  }
   
   UpdateDisplayedIndex <- function(mailUpdated)
   {
@@ -62,7 +234,7 @@ server = function(input, output, session) {
     
     var2<-list()
     i <- 1
-
+    
     # if (input$Test != -1){
     #   if (!mailUpdated)
     #   {
@@ -128,6 +300,15 @@ server = function(input, output, session) {
     })
     
     
+    output$dropdown_index2 <- renderUI({
+      selectInput("Index2",
+                  NULL,
+                  choices = c("Index of Difficulty" = "", tempVar2[["DifficultyIndex"]]),
+                  selectize = TRUE
+      )
+    })
+    
+    
     # pal <- c("red", "yellow", "green", "blue", "pink")
     
     var3 <- tempVar2$UserId
@@ -140,7 +321,7 @@ server = function(input, output, session) {
     {
       var3 <- NULL
     }
-
+    
     #    output$plot1 <- renderPlotly(
     # plot_ly(data = tempVar3, x = ~DifficultyIndex, y = ~DeltaTime, type = 'scatter', mode = 'lines',
     #         fillcolor='rgba(0,100,80,0.2)', line = list(color = 'transparent'),
@@ -163,11 +344,11 @@ server = function(input, output, session) {
               color = var3 ,
               # colors = pal,
               data = tempVar2, x=~DifficultyIndex, y=~DeltaTime) %>%
-
+        
         add_trace(data = tempVar3, x = ~DifficultyIndex, y = ~DeltaTime, type = 'scatter', mode = 'lines', color = NULL,
- fillcolor='rgba(0,100,80,0.2)', line = list(color = 'transparent'),
+                  fillcolor='rgba(0,100,80,0.2)', line = list(color = 'transparent'),
                   showlegend = FALSE)%>%
-
+        
         add_trace(data = tempVar4, x = ~DifficultyIndex, y = ~DeltaTime, type = 'scatter', mode = 'lines', color = NULL,
                   fill = 'tonexty', fillcolor='rgba(1,1,1,0.1)', line = list(color = 'transparent'),
                   showlegend = FALSE)

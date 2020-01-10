@@ -55,7 +55,7 @@ GenerateQuery <- function(conditionLists, option)
       queryString = paste(queryString, listLink, sep = " ")
     }
   }
-  # print(queryString)
+  print(queryString)
   return(queryString)
 }
 

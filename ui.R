@@ -81,16 +81,17 @@ ui <- fluidPage(
                   # Inputs
                   sidebarPanel(
                     
-                    selectInput("Type",
-                                "Test Type",
-                                choices = GenerateSelectChoices(default = "Fitts", text = "", fieldName = "GameType")),
+                    # selectInput("Type",
+                    #             "Test Type",
+                    #             choices = GenerateSelectChoices(default = "Fitts", text = "", fieldName = "GameType")),
+                    
+                    uiOutput("TestType"),
                     
                     
                     
                     checkboxGroupInput("comparaison", "Input To Compare:",
-                                       c("Cylinders" = "cyl",
-                                         "Transmission" = "am",
-                                         "Gears" = "gear")),            
+                                       c("Mouse" = "mouse",
+                                         "Pressure" = "pressuresensor")),            
                     
                     
                   ),
@@ -98,11 +99,11 @@ ui <- fluidPage(
                   mainPanel(
                     
                     plotlyOutput("plot2"),
+                    uiOutput("dropdown_index2")
                     
-                    selectInput("Index2",
-                                NULL,
-                                choices = GenerateSelectChoices(default = "Index of Difficulty", text = "", fieldName = "GameType"),
-                    ),
+                    
+                   
+                    
                   )
                 )
                 
