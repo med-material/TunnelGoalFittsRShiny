@@ -168,7 +168,7 @@ server = function(input, output, session) {
     
     for (i in 1:nrow(tempVar2)) {
       
-      tempVar2[i, "DifficultyIndex"] <- log2(((2*strtoi(tempVar2[i, "TargetDiameter"])) / strtoi(tempVar2[i, "TargetsDistance"])))
+      tempVar2[i, "DifficultyIndex"] <- log2(((2*strtoi(tempVar2[i, "TargetsDistance"]))/strtoi(tempVar2[i, "TargetDiameter"])) )
       
     }
     
@@ -277,13 +277,13 @@ server = function(input, output, session) {
     
     for (i in 1:nrow(tempVar2)) {
       
-      tempVar2[i, "DifficultyIndex"] <- log2(((2*strtoi(tempVar2[i, "TargetDiameter"])) / strtoi(tempVar2[i, "TargetsDistance"])))
+      tempVar2[i, "DifficultyIndex"] <- log2(((2*strtoi(tempVar2[i, "TargetsDistance"]))/strtoi(tempVar2[i, "TargetDiameter"])) )
       
     }
     
     for (i in 1:nrow(tempVar)) {
       
-      tempVar[i, "DifficultyIndex"] <- log2(((2*strtoi(tempVar[i, "TargetDiameter"])) / strtoi(tempVar[i, "TargetsDistance"])))
+      tempVar[i, "DifficultyIndex"] <- log2(((2*strtoi(tempVar2[i, "TargetsDistance"]))/strtoi(tempVar2[i, "TargetDiameter"])) )
       
     }
     
