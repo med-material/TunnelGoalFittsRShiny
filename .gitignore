@@ -1,4 +1,7 @@
-
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
 
 #credentials to connect to the DB
 credentials.csv

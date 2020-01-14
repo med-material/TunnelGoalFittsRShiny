@@ -123,7 +123,7 @@ server = function(input, output, session) {
                   # colors = pal,
           ) %>%
             layout(xaxis = list(title = ""),
-                   yaxis = list(title = "Movment Time (s)"),
+                   yaxis = list(title = "Movement Time (s)"),
                    legend = list(orientation = 'h'))
         )
         return()
