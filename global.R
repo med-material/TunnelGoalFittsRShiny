@@ -1,7 +1,9 @@
 library(RMySQL)
+library(plyr)
+library(ggplot2)
+
 
 my_data <- read.csv("credentials.csv", header=TRUE,sep=",", colClasses=c("character","character","character","character"))
-# print(my_data[1, "host"])
 
 lapply( dbListConnections( dbDriver( drv = "MySQL")), dbDisconnect)
 
@@ -14,117 +16,55 @@ mydb = dbConnect(MySQL(),
                  dbname=my_data[1, "dbname"],
                  host=my_data[1, "host"])
 
-
-
-FetchDatas <- function(conditionLists = list(), option = "*")
-{
-  queryString = GenerateQuery(conditionLists, option)
-  # print(dbGetQuery(mydb, queryString))
-  return(dbGetQuery(mydb, queryString))
+# RetreiveUniqueColmnVals() Used to get unique values available for a column
+# USAGE:
+#dtest = RetreiveUniqueColmnVals("Email")
+RetreiveUniqueColVals <- function(tablename, column) {
+  queryString = paste("SELECT DISTINCT",column,"FROM",tablename,sep=" ")
+  res = dbSendQuery(mydb, queryString)
+  vals = fetch(res, n=-1)
+  dbClearResult(dbListResults(mydb)[[1]])
+  return(unname(unlist(vals))) # if there are several values, they arrive as a list, so unlist them on arrival.
 }
 
+all_accounts = RetreiveUniqueColVals("tunnel_fit_test","Email")
 
-GenerateQuery <- function(conditionLists, option)
-{
-  queryString = paste("SELECT", option, sep = " ")
-  queryString = paste(queryString, "FROM tunnel_fit_test", sep = " ")
-  
-  if (length(conditionLists) == 0)
-  {
-    # print(queryString)
-    return(queryString)
-  }
-  
-  conditionLink = "OR"
-  listLink = "AND"
-  
-  queryString = paste(queryString, "WHERE", sep = " ")
-  
-  for (i in 1:length(conditionLists)){
-    queryString = paste(queryString, "(", sep = "")
-    for (j in 1:length(conditionLists[[i]])){
-      queryString = paste(queryString, conditionLists[[i]][[j]], sep = " ")
-      if (j < length(conditionLists[[i]]))
-      {
-        queryString = paste(queryString, conditionLink, sep = " ")
-      }
-    }
-    queryString = paste(queryString, ")", sep = "")
-    if (i < length(conditionLists))
-    {
-      queryString = paste(queryString, listLink, sep = " ")
-    }
+
+# RetreiveDataSet() Used to query for a specific dataset. 
+# Setting colvalue to NULL retreives all data.
+# USAGE:
+#dtest = RetreiveDataSet("tunnel_fit_test","Email","mhel@create.aau.dk")
+RetreiveDataSet <- function(tablename, column, colvalue) {
+  queryString = "SELECT *"
+  queryString = paste(queryString, "FROM",tablename, sep = " ")
+  if (colvalue != "NA") {
+    queryString = paste(queryString, "WHERE",column,"= ",sep=" ")
+    queryString = paste(queryString,"\'",colvalue,"\'",sep="")
   }
   print(queryString)
-  return(queryString)
+  res = dbSendQuery(mydb, queryString)
+  df = fetch(res, n=-1) 
+  dbClearResult(dbListResults(mydb)[[1]])
+  return(df)
 }
 
-
-GetField <- function(fieldName, fetchResult)
-{
-  return(fetchResult[[fieldName]])
-}
-
-
-CountField <- function(fieldName = "*", conditions = list())
-{
-  tempField <- paste("COUNT(DISTINCT ", fieldName, sep = "")
-  tempField <- paste(tempField, ")", sep = "")
-  return(GetField(tempField, FetchDatas(conditions, tempField)))
-}
-
-
-GenerateSelectChoices <- function(default = "", text = "", fieldName, conditions = list(), extraInfo = list(), extracaract = "")
-{
-  tempList <- list()
-  tempList[[default]] <- -1
-  fieldList <- GetField(fieldName, FetchDatas(conditions, paste("DISTINCT", fieldName)))
-  extraTextString = ""
-  
-  if(length(fieldList) == 0)
-    return(tempList)
-  
-  for(i in 1:length(fieldList))
-  {
-    if(length(extraInfo) != 0)
-    {
-      extraTextString = ""
-      extraText <- list()
-      for(j in 1:length(extraInfo))
-      {
-        # print(j)
-        tempContitions <- conditions
-        tempContitions[[length(tempContitions) + 1]] <- paste(toString(fieldName), " = '", fieldList[[i]], "'", sep = "")
-        returnTable <- GetField(extraInfo[[j]], FetchDatas(tempContitions, paste("DISTINCT", extraInfo[[j]])))
-        extraText[[j]] <- returnTable[[(length(returnTable))]]
-        # print("test")
-      }
-      
-      
-      for(j in 1:length(extraText))
-      {
-        extraTextString <- paste(extraTextString, toString(extraText[[j]]), sep = "")
-      }
-    }
-    
-    resultString <- ""
-    
-    if (is.numeric(fieldList[[i]]))
-    {
-      resultString <- paste(text, fieldList[[i]], sep = " ")
-    }
-    else
-    {
-      resultString <- fieldList[[i]]
-    }
-    
-    if(extraTextString != "")
-    {
-      extraTextString <- paste("(", extraTextString, extracaract, ")", sep = "")
-      resultString <- paste(resultString, extraTextString, sep = " ")
-    }
-    
-    tempList[[resultString]] <- fieldList[[i]]
+# RefreshDataSet is a helper function called in the app for refreshing TunnelGoalFitts dataset.
+# Setting colfilter to NULL retreives all data.
+# USAGE:
+# RefreshDataSets("mhel@create.aau.dk")
+RefreshDataSets <- function(colfilter) {
+  if (colfilter == "-1") {
+    # -1 is the default value R Shiny uses on startup.
+    return()
   }
-  return(tempList)
+  # REFRESH REACTION TIME DATASET
+  df_all<<- RetreiveDataSet("tunnel_fit_test","Email",colfilter)
+  df_all$GameType<<-as.factor(df_all$GameType)
+  df_all$GameType<<-factor(df_all$GameType,levels = c("Goal", "Fitts","Tunnel"))
+  df_all$PID <<- as.factor(df_all$PID)
+  df_all$TrialNo <<- as.factor(df_all$TrialNo)
 }
+
+
+df_all <- data.frame()
+

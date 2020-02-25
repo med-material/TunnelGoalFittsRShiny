@@ -1,361 +1,261 @@
+library(plyr)
+library(Rmisc)
+library(reshape2)
+library(dplyr)
+library(tidyr)
+
 server = function(input, output, session) {
   
-  observeEvent({input$mail},{
-    var<-list()
-    
-    if (input$mail != -1){
-      var = list(list(paste("UserId = '", input$mail, "'", sep = "")))
-    }
-    
-    
-    
-    output$Test <- renderUI(
-      {selectInput("Test",
-                   "Choose Test",
-                   choices = GenerateSelectChoices(default = "All Tests", text = "", fieldName = "DateId", extraInfo = list("SessionTime"), extracaract = " seconds", conditions = var)
-                   
-      )})
-    
-    output$TestType <- renderUI(
-      {selectInput("TestType",
-                   "Test Type",
-                   choices = GenerateSelectChoices(default = "All Types", text = "", fieldName = "GameType", conditions = var)
-      )})
-    
-    UpdateDisplayedIndex(TRUE)
-    UpdatePlot2(TRUE)
-  })
+  # VARIABLES
+  df_goal <- NULL
+  df_tunnel <- NULL
+  df_fitts <- NULL
   
+  # define colors to use in plots.
+  colorPalette <- c("#c94232","#239a37")
   
+  # a variable we use, if we filter based on pid.
+  pid_index <- NULL
+  pid_name <- NULL
+  pid_email <- NULL
+  pid_query <- NULL
+  subject <- "Goal" #tunnel, fitts
   
-  observeEvent({input$Test},{
-    if (input$Test != -1){
-      output$GameType <- renderText(paste("Game Type :", GetField("GameType", FetchDatas(conditionLists = list(list(paste("DateId = '", input$Test, "'", sep = ""))), option="DISTINCT GameType")), sep = " "))
-      output$HitType <- renderText(paste(length(GetField("HitType", FetchDatas(conditionLists = list(list(paste("DateId = '", input$Test, "'", sep = "")), list("HitType = 'Hit'")), option="HitType"))), " Successful Hits" , sep = " "))
-      output$WrongHits <- renderText(paste(length(GetField("HitType", FetchDatas(conditionLists = list(list(paste("DateId = '", input$Test, "'", sep = "")), list("HitType = 'Miss'", "HitType = 'Error'")), option="HitType"))), " Invalid Hits" , sep = " "))
-      output$Average <- renderText(paste("Average time : ", format(mean(GetField("DeltaTime", FetchDatas(conditionLists = list(list(paste("DateId = '", input$Test, "'", sep = "")), list("HitType = 'Hit'")), option="DeltaTime"))),digits = 3), " seconds" , sep = " "))
-      output$Type <- renderText(paste("Type :", GetField("InputType", FetchDatas(conditionLists = list(list(paste("DateId = '", input$Test, "'", sep = ""))), option="DISTINCT InputType")), sep = " "))  
-      output$Respond <- renderText(paste("Responder :", GetField("InputResponders", FetchDatas(conditionLists = list(list(paste("DateId = '", input$Test, "'", sep = ""))), option="DISTINCT InputResponders")), sep = " "))  
-      
-      
-    }
-    else
-    {
-      output$GameType <- renderText("")
-      output$HitType <- renderText("")
-      output$WrongHits <- renderText("")
-      output$Average <- renderText("")
-      output$Type <- renderText("")
-      output$Respond <- renderText("")
-    }
-    
-    UpdateDisplayedIndex(FALSE)
-  })
+  # a variable we use to keep track of the currently available participants
+  participants <- NULL
+  choices <- NULL
   
   observe({
-    UpdatePlot2(FALSE)
+    query <- parseQueryString(session$clientData$url_search)
+    # Change E-mail dropdown based on the ?email=XXX URL parameter
+    # Filter visualizations based on the ?pid=XXX URL parameter (based on the tab's value attribute)
+    # Change Tab based on the ?subject=XXX URL parameter (based on the tab's value attribute)
+    if (!is.null(query[['subject']])) {
+      subject <<- query[['subject']]
+      updateTabsetPanel(session, "subjectChooser", selected = subject)
+    }
+    if (!is.null(query[['pid']])) {
+      pid = query[['pid']]
+      pid_query <<- pid
+      pid_name <<- pid
+    }
+    if (!is.null(query[['email']])) {
+      sel = query[['email']]
+      pid_email = query[['email']]
+      updateSelectInput(session , "emailSelect", choices = c(all_accounts, "Everyone\'s Data" = "NA"), selected = sel)
+    } else {
+      updateSelectInput(session , "emailSelect", choices = c(all_accounts, "Everyone\'s Data" = "NA"))
+    }
+  })
+
+  observeEvent({input$subjectChooser}, {
+    if (input$subjectChooser != subject) {
+      subject <<- input$subjectChooser
+      UpdatePIDSelection()      
+      UpdateVisualizations()      
+    }
   })
   
-  
-  
-  
-  output$plot2 <- renderPlotly(
-    plot_ly(type = 'scatter',mode='markers') %>% layout(xaxis = list(title = ""), yaxis = list(title = "Movment Time (s)"))
-  )
-  
-  
-  
-  UpdatePlot2 <- function(mailUpdated)
-  {
-    if(is.null(input$TestType) | is.null(input$mail))
-    {
+  observeEvent(ignoreNULL=FALSE, {input$pidChooser}, {
+    print(paste("email: ", input$emailSelect))
+    # prevent infinite loop - only update pid_name to null, if the value is not already null.
+    if (is.null(pid_name) & is.null(input$pidChooser)) {
+      print(paste("pidChooser: pid_index ", pid_index))
+      print(paste("pidChooser: pid_name ", pid_name))
+      print("ignored..")
       return()
     }
-    
-    conditionsList <- input$comparaison
-    conditionValue <- NULL
-    
-    if (length(conditionsList) != 0)
-      for (i in 1:length(conditionsList))
-      {
-        if(i == 1)
-        {
-          conditionValue <- gsub(" ", "", paste("InputType = '", conditionsList[[i]], "'"))
-        }
-        else
-        {
-          conditionValue <- paste(conditionValue, " OR ", gsub(" ", "", paste("InputType = '", conditionsList[[i]], "'")))
-        }
-        
-      }
-    
-    # print(conditionValue)
-    
-    # if (input$comparaison.eye != -1){
-    #   if (!mailUpdated)
-    #   {
-    #     var2[[i]] <- list(list(paste("DateId = '", input$Test, "'", sep = "")))
-    #     i = i+1
-    #   }
-    # }
-    # 
-    # 
-    # if (input$mail != -1){
-    #   var2[[i]] <- list(list(paste("UserId = '", input$mail, "'", sep = "")))
-    #   i = i+1
-    # }
-    
-    
-    
-    tempVar <- FetchDatas(option = 'TargetsDistance, TargetDiameter, DeltaTime, UserId, GameType, DateId, InputType', conditionLists = conditionValue)
-    tempVar2 <- tempVar
-    
-    print(length(which(tempVar$UserId == input$mail)))
-    
-    if(input$TestType != -1)
-    {
-      if ((length(which(tempVar$GameType == input$TestType)) == 0))
-      {
-        output$plot2 <- renderPlotly(
-          plot_ly(type = 'scatter',
-                  mode='markers',
-                  color = tempVar2$InputType ,
-                  # colors = pal,
-          ) %>%
-            layout(xaxis = list(title = ""),
-                   yaxis = list(title = "Movement Time (s)"),
-                   legend = list(orientation = 'h'))
-        )
-        return()
-      }
+    # CheckboxInputGroup sends an initial NULL value which overrides any query values.
+    # Make sure we check whether a specific PID was specified as URL param before.
+    if (!is.null(pid_query)) {
+      print("pid_query exists, ignoring pidChooser")
+    } else if (!is.null(input$pidChooser)) {
+      pid_index <<- input$pidChooser
+      pid_name <<- unlist(participants[input$pidChooser,"PID"])
+      pid_email <<- unlist(participants[input$pidChooser,"Email"])
+    } else {
+      pid_index <<- NULL
+      pid_name <<- NULL
+      pid_email <<- NULL
     }
-    
-    
-    
-    if(input$mail != -1)
-    {
-      if (length(which(tempVar$UserId == input$mail)) == 0)
-      {
-        output$plot2 <- renderPlotly(
-          plot_ly(type = 'scatter',
-                  mode='markers',
-                  color = tempVar2$InputType ,
-                  # colors = pal,
-          ) %>%
-            layout(xaxis = list(title = ""),
-                   yaxis = list(title = "Movment Time (s)"),
-                   legend = list(orientation = 'h'))
-        )
-        return()
-      }
-    }
-    
-    
-    
-    if (input$mail != -1){
-      tempVar2 <- subset(tempVar2, tempVar2$UserId == input$mail)
-    }
-    
-    if (input$TestType != -1){
-      if (!mailUpdated)
-      {
-        tempVar2 <- subset(tempVar2, tempVar2$GameType == input$TestType)
-      }
-    }
-    
-    tempVar2$DifficultyIndex <- numeric(length(tempVar2["DeltaTime"]))
-    
-    
-    for (i in 1:nrow(tempVar2)) {
-      
-      tempVar2[i, "DifficultyIndex"] <- log2(((2*strtoi(tempVar2[i, "TargetsDistance"]))/strtoi(tempVar2[i, "TargetDiameter"])) )
-      
-    }
-    
-    
-    
-    
-    # var3 <- tempVar2$UserId
-    # 
-    # if (input$mail != -1 & input$TestType == -1)
-    # {
-    #   var3 <- tempVar2$GameType
-    # }
-    # if (input$TestType != -1 & input$mail != -1)
-    # {
-    #   var3 <- tempVar2$DateId
-    # }
-    
-    p <- plot_ly(type = 'scatter',
-                 mode='markers',
-                 color = tempVar2$InputType ,
-                 # colors = pal,
-                 data = tempVar2, x=~DifficultyIndex, y=~DeltaTime) %>%
-      layout(xaxis = list(title = ""),
-             yaxis = list(title = "Movment Time (s)"),
-             legend = list(orientation = 'h'))
-    
-    
-    
-    
-    
-    
-    if(length(unique(tempVar2$InputType)) == 1)
-    {
-      p <- add_lines(p, x = ~DifficultyIndex, y = tempVar2 %>% filter(!is.na(DifficultyIndex)) %>% lm(DeltaTime ~ DifficultyIndex,.) %>% fitted.values())
-    }
-    else
-    {
-      p <- add_lines(p, x = ~DifficultyIndex, y = tempVar2 %>% filter(!is.na(DifficultyIndex)) %>% lm(DeltaTime ~ DifficultyIndex*DifficultyIndex,.) %>% fitted.values())
-    }
-    
-    for(i in 1:length(unique(tempVar2$InputType))){
-      patate <- tempVar2[tempVar2$InputType == unique(tempVar2$InputType)[i], ]
-      
-      reg <-lm(DifficultyIndex ~ DeltaTime, data = patate)
-      
-    }
-    
-    
-    
-    
-    output$plot2 <- renderPlotly(p)
-    
-    
-  }
-  
-  UpdateDisplayedIndex <- function(mailUpdated)
-  {
-    if(is.null(input$Test) | is.null(input$mail))
-    {
+    print(paste("pidChooser: pid_index ", pid_index))
+    print(paste("pidChooser: pid_name ", pid_name))
+    UpdateVisualizations()  
+  })
+  observeEvent({input$emailSelect},{
+    if (input$emailSelect == "-1") {
       return()
     }
+    RefreshDataSets(input$emailSelect)
+
+    # VARIABLES
+    df_goal <<- df_all %>% filter(GameType == "Goal")
+    df_tunnel <<- df_all %>% filter(GameType == "Tunnel")
+    df_fitts <<- df_all %>% filter(GameType == "Fitts")    
     
+    UpdatePIDSelection()
     
-    var2<-list()
-    i <- 1
-    
-    # if (input$Test != -1){
-    #   if (!mailUpdated)
-    #   {
-    #     var2[[i]] <- list(list(paste("DateId = '", input$Test, "'", sep = "")))
-    #     i = i+1
-    #   }
-    # }
-    # 
-    # 
-    # if (input$mail != -1){
-    #   var2[[i]] <- list(list(paste("UserId = '", input$mail, "'", sep = "")))
-    #   i = i+1
-    # }
-    
-    # tempVar <- FetchDatas(conditionLists = var2, option = 'TargetsDistance, TargetDiameter, DeltaTime, UserId, GameType')
-    tempVar <- FetchDatas(option = 'TargetsDistance, TargetDiameter, DeltaTime, UserId, GameType, DateId')
-    tempVar2 <- tempVar
-    
-    if (input$mail != -1){
-      tempVar2 <- subset(tempVar2, tempVar2$UserId == input$mail)
-    }
-    
-    if (input$Test != -1){
-      if (!mailUpdated)
-      {
-        tempVar2 <- subset(tempVar2, tempVar2$DateId == input$Test)
+    UpdateVisualizations()
+  })
+  observeEvent(input$Param, {  
+    UpdateVisualizations()
+  })
+  
+  UpdatePIDSelection <- function() {
+    # Update PID Choosers to show PID numbers based on the data
+    if (subject == "Goal") {
+      participants <<- unique(df_goal %>% group_by(Email) %>% distinct(PID))
+      participants$PID[is.na(participants$PID)] <<- "NA"
+      if (nrow(participants) > 0) {
+        choices <<- setNames(c(1:nrow(participants)),participants$PID)
+      } else {
+        choices <<- NULL
+      }
+    } else if (subject == "Fitts") {
+      participants <<- unique(df_fitts %>% group_by(Email) %>% distinct(PID))
+      participants$PID[is.na(participants$PID)] <<- "NA"
+      if (nrow(participants) > 0) {
+        choices <<- setNames(c(1:nrow(participants)),participants$PID)
+      } else {
+        choices <<- NULL
+      }
+    } else if (subject == "Tunnel") {
+      participants <<- unique(df_tunnel %>% group_by(Email) %>% distinct(PID))
+      participants$PID[is.na(participants$PID)] <<- "NA"
+      if (nrow(participants) > 0) {
+        choices <<- setNames(c(1:nrow(participants)),participants$PID)
+      } else {
+        choices <<- NULL
       }
     }
-    
-    tempVar2$DifficultyIndex <- numeric(length(tempVar2["DeltaTime"]))
-    tempVar$DifficultyIndex <- numeric(length(tempVar["DeltaTime"]))
-    
-    # DeltaTime <- tempVar["DeltaTime"]
-    # 
-    # UserId <- tempVar["UserId"]
-    # 
-    # GameType <- tempVar["GameType"]
-    # 
-    # tempVar2 <- data.frame(DifficultyIndex, DeltaTime, UserId, GameType)
-    
-    for (i in 1:nrow(tempVar2)) {
-      
-      tempVar2[i, "DifficultyIndex"] <- log2(((2*strtoi(tempVar2[i, "TargetsDistance"]))/strtoi(tempVar2[i, "TargetDiameter"])) )
-      
+    if (!is.null(pid_query)) {
+      pid_name <<- pid_query
+      pid_query <<- NULL
+      pid_index <<- unname(choices[names(choices) == pid_name])
+      print(paste("PIDQuery: e-mail", input$emailSelect))
+      print(paste("PIDQuery: pid_name", pid_name))
+      print(paste("PIDQuery: pid_index", pid_index))
     }
-    
-    for (i in 1:nrow(tempVar)) {
-      
-      tempVar[i, "DifficultyIndex"] <- log2(((2*strtoi(tempVar2[i, "TargetsDistance"]))/strtoi(tempVar2[i, "TargetDiameter"])) )
-      
+    print(choices)
+    print(nrow(participants))
+    if (is.null(choices)) {
+      updateCheckboxGroupInput(session, label = "No Participant Data", "pidChooser", choices = NULL, selected = NULL, inline = TRUE)
     }
-    
-    tempVar3 <- do.call(rbind, lapply(split(tempVar,as.factor(tempVar$DifficultyIndex)), function(x) {return(x[which.max(x$DeltaTime),])}))
-    tempVar4 <- do.call(rbind, lapply(split(tempVar,as.factor(tempVar$DifficultyIndex)), function(x) {return(x[which.min(x$DeltaTime),])}))
-    
-    
-    output$dropdown_index <- renderUI({
-      selectInput("Index",
-                  NULL,
-                  choices = c("Index of Difficulty" = "", tempVar2[["DifficultyIndex"]]),
-                  selectize = TRUE
-      )
-    })
-    
-    
-    output$dropdown_index2 <- renderUI({
-      selectInput("Index2",
-                  NULL,
-                  choices = c("Index of Difficulty" = "", tempVar2[["DifficultyIndex"]]),
-                  selectize = TRUE
-      )
-    })
-    
-    
-    # pal <- c("red", "yellow", "green", "blue", "pink")
-    
-    var3 <- tempVar2$UserId
-    
-    if (input$mail != -1 & input$Test == -1)
-    {
-      var3 <- tempVar2$GameType
+    else if (is.null(pid_index)) {
+      print("UpdateCheckbox: pid is null")
+      updateCheckboxGroupInput(session, label = "Filter by Participant:", "pidChooser", choices = choices, selected = NULL, inline = TRUE)
+    } else {
+      print(paste("UpdateCheckbox: ", pid_index))
+      updateCheckboxGroupInput(session, label = "Filter by Participant:", "pidChooser", choices = choices, selected = pid_index, inline = TRUE)
     }
-    if (input$Test != -1)
-    {
-      var3 <- NULL
-    }
-    
-    #    output$plot1 <- renderPlotly(
-    # plot_ly(data = tempVar3, x = ~DifficultyIndex, y = ~DeltaTime, type = 'scatter', mode = 'lines',
-    #         fillcolor='rgba(0,100,80,0.2)', line = list(color = 'transparent'),
-    #         showlegend = FALSE)%>%
-    # 
-    #   add_trace(data = tempVar4, x = ~DifficultyIndex, y = ~DeltaTime, type = 'scatter', mode = 'lines',
-    #             fill = 'tonexty', fillcolor='rgba(0,100,80,0.2)', line = list(color = 'transparent'),
-    #             showlegend = FALSE)  %>%
-    # 
-    #   add_trace(type = 'scatter',
-    #             mode='markers',
-    #             color = var3 ,
-    #             # colors = pal,
-    #             data = tempVar2, x=~DifficultyIndex, y=~DeltaTime, showlegend = TRUE)
-    
-    
-    output$plot1 <- renderPlotly(
-      plot_ly(type = 'scatter',
-              mode='markers',
-              color = var3 ,
-              # colors = pal,
-              data = tempVar2, x=~DifficultyIndex, y=~DeltaTime) %>%
-        
-        add_trace(data = tempVar3, x = ~DifficultyIndex, y = ~DeltaTime, type = 'scatter', mode = 'lines', color = NULL,
-                  fillcolor='rgba(0,100,80,0.2)', line = list(color = 'transparent'),
-                  showlegend = FALSE)%>%
-        
-        add_trace(data = tempVar4, x = ~DifficultyIndex, y = ~DeltaTime, type = 'scatter', mode = 'lines', color = NULL,
-                  fill = 'tonexty', fillcolor='rgba(1,1,1,0.1)', line = list(color = 'transparent'),
-                  showlegend = FALSE)
-      %>%
-        layout(xaxis = list(title = ""),
-               yaxis = list(title = "Movment Time (s)"),
-               legend = list(orientation = 'h'))
-    )
   }
+
+  UpdateVisualizations <- function() {
+    if (input$emailSelect == "-1") {
+      return()
+    }
+    print(paste("UpdateVis pid: ", pid_name))
+    print(paste("UpdateVis subject: ", subject))
+    print(paste("UpdateVis subject==Fitts: ", subject == "Fitts"))
+    print(paste("df_all nrow:",nrow(df_all)))
+    print(paste("df_goal nrow:",nrow(df_goal)))
+    # Filter visualization data based on pid_name
+    if (!is.null(pid_name)) {
+      df_all <- df_all %>% filter(Email %in% pid_email) %>% filter(PID %in% pid_name)
+      df_goal <- df_goal %>% filter(Email %in% pid_email) %>% filter(PID %in% pid_name)
+      df_tunnel <- df_tunnel %>% filter(Email %in% pid_email) %>% filter(PID %in% pid_name)
+      df_fitts <- df_fitts %>% filter(Email %in% pid_email) %>% filter(PID %in% pid_name)
+    }
+    if (subject == "Goal") {
+      print(paste("df_goal filtered nrow:",nrow(df_goal)))
+      output$goalHitType <- renderText(paste(length(df_goal$ID[df_goal$HitType == "Hit"]), " Successful Hits", sep=" "))
+      output$goalWrongHits <- renderText(paste(length(df_goal$ID[df_goal$HitType == "Miss"]), " Errors", sep=" "))
+      output$goalAverage <- renderText(paste("Average time : ", format(mean(df_goal$DeltaTime)), sep=" "))
+      output$goalType <- renderText(paste("Input Type :", unique(df_goal$InputType), sep = " "))  
+      output$goalRespond <- renderText(paste("Input Responder :", unique(df_goal$InputResponder), sep = " "))
+      
+      output$goalTestDetails <- renderPlotly(
+        plot_ly(type = 'scatter',
+                mode='markers',
+                #color = var3 ,
+                # colors = pal,
+                data = df_goal, x=~TargetNumber, y=~DeltaTime) %>%
+
+          layout(xaxis = list(title = "TargetNumber"),
+                 yaxis = list(title = "Movment Time (s)"),
+                 legend = list(orientation = 'h'))
+      )
+      
+      output$goalComparison <- renderPlotly(
+        plot_ly(type = 'scatter',
+                mode='markers',
+                color = df_goal$InputType ,
+                # colors = pal,
+        ) %>%
+          layout(xaxis = list(title = ""),
+                 yaxis = list(title = "Movement Time (s)"),
+                 legend = list(orientation = 'h'))
+      )
+    } else if (subject == "Fitts") {
+      print(paste("df_fitts filtered nrow:",nrow(df_fitts)))
+      output$fittsHitType <- renderText(paste(length(df_fitts$ID[df_fitts$HitType == "Hit"]), " Successful Hits", sep=" "))
+      output$fittsWrongHits <- renderText(paste(length(df_fitts$ID[df_fitts$HitType == "Miss"]), " Errors", sep=" "))
+      output$fittsAverage <- renderText(paste("Average time : ", format(mean(df_fitts$DeltaTime)), sep=" "))
+      output$fittsType <- renderText(paste("Input Type :", unique(df_fitts$InputType), sep = " "))  
+      output$fittsRespond <- renderText(paste("Input Responder :", unique(df_fitts$InputResponder), sep = " "))
+      
+      output$fittsTestDetails <- renderPlotly(
+        plot_ly(type = 'scatter',
+                mode='markers',
+                #color = var3 ,
+                # colors = pal,
+                data = df_fitts, x=~TargetNumber, y=~DeltaTime) %>%
+          
+          layout(xaxis = list(title = "TargetNumber"),
+                 yaxis = list(title = "Movment Time (s)"),
+                 legend = list(orientation = 'h'))
+      )
+      
+      output$fittsComparison <- renderPlotly(
+        plot_ly(type = 'scatter',
+                mode='markers',
+                color = df_fitts$InputType ,
+                # colors = pal,
+        ) %>%
+          layout(xaxis = list(title = ""),
+                 yaxis = list(title = "Movement Time (s)"),
+                 legend = list(orientation = 'h'))
+      )
+    } else if (subject == "Tunnel") {
+      print(paste("df_tunnel filtered nrow:",nrow(df_tunnel)))
+      output$tunnelHitType <- renderText(paste(length(df_tunnel$ID[df_tunnel$HitType == "Hit"]), " Successful Hits", sep=" "))
+      output$tunnelWrongHits <- renderText(paste(length(df_tunnel$ID[df_tunnel$HitType == "Miss"]), " Errors", sep=" "))
+      output$tunnelAverage <- renderText(paste("Average time : ", format(mean(df_tunnel$DeltaTime)), sep=" "))
+      output$tunnelType <- renderText(paste("Input Type :", unique(df_tunnel$InputType), sep = " "))  
+      output$tunnelRespond <- renderText(paste("Input Responder :", unique(df_tunnel$InputResponder), sep = " "))  
+      
+      output$tunnelTestDetails <- renderPlotly(
+                                plot_ly(type = 'scatter',
+                                        mode='markers',
+                                        data = df_tunnel, x=~TargetNumber, y=~DeltaTime) %>%
+                                        layout(xaxis = list(title = "TargetNumber"),
+                                         yaxis = list(title = "Movment Time (s)"),
+                                         legend = list(orientation = 'h'))
+                                )
+      
+      output$tunnelComparison <- renderPlotly(
+                                plot_ly(type = 'scatter',
+                                        mode='markers',
+                                        color = df_tunnel$InputType ,
+                                        # colors = pal,
+                                ) %>%
+                                  layout(xaxis = list(title = ""),
+                                         yaxis = list(title = "Movement Time (s)"),
+                                         legend = list(orientation = 'h'))
+                                )
+      
+    }
+  }
+  
 }
+  
