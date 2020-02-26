@@ -91,8 +91,8 @@ server = function(input, output, session) {
     # VARIABLES
     df_goal <<- df_all %>% filter(GameType == "Goal")
     df_tunnel <<- df_all %>% filter(GameType == "Tunnel")
-    df_fitts <<- df_all %>% filter(GameType == "Fitts")    
-    
+    df_fitts <<- df_all %>% filter(GameType == "Fitts") 
+    df_fitts$FittsID<<-log2(2*df_fitts$ObjectDistanceCm/df_fitts$ObjectWidthCm)
     UpdatePIDSelection()
     
     UpdateVisualizations()
@@ -226,6 +226,10 @@ server = function(input, output, session) {
                  yaxis = list(title = "Movement Time (s)"),
                  legend = list(orientation = 'h'))
       )
+      #Fitts plot with regression line and equation
+      fittsRegPlotX<-ggplot(df_fitts, aes(FittsID,DeltaTime)) +xlab("ID")+theme_bw()+geom_point()
+        output$fittsRegPlot <- renderPlotly(ggplotly(p = fittsRegPlotX) %>%
+                                               config(scrollZoom = TRUE))
     } else if (subject == "Tunnel") {
       print(paste("df_tunnel filtered nrow:",nrow(df_tunnel)))
       output$tunnelHitType <- renderText(paste(length(df_tunnel$ID[df_tunnel$HitType == "Hit"]), " Successful Hits", sep=" "))
