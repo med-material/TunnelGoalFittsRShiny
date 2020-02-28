@@ -1,6 +1,7 @@
 library(shiny)
 library(plotly)
 library(shinyjs)
+library(ggplot2)
 
 ui <- fluidPage(
   
@@ -55,14 +56,20 @@ ui <- fluidPage(
                         textOutput("fittsType"),
                         textOutput("fittsRespond")
                ),
-               tabPanel("Input Responder Comparison",
-                        plotlyOutput("fittsComparison"),
-                        tags$div(class = "vizcontrols-explainer")
-               ),
                tabPanel("Fitts regression line plot",
-                        plotlyOutput("fittsRegPlot"),
-                        tags$div(class = "vizcontrols-explainer")
+                        plotOutput('fittsLRPlot')
+                        #plotlyOutput("fittsRegPlot"),
+                        #tags$div(class = "vizcontrols-explainer")
+             ),
+             tabPanel("Input Responder Comparison",
+                      plotlyOutput("fittsLRLearnPlot"),
+                      tags$div(class = "vizcontrols-explainer")
              )
+             # ,
+             # tabPanel("Fitts LR progress",
+             #          plotlyOutput("fittsLRLearnPlot"),
+             #          tags$div(class = "vizcontrols-explainer")
+             # )
   )),
     # PanelsTunnel ---------------------------------------------------------------
 

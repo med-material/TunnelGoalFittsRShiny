@@ -3,6 +3,7 @@ library(Rmisc)
 library(reshape2)
 library(dplyr)
 library(tidyr)
+library(ggpubr)
 
 server = function(input, output, session) {
   
@@ -100,7 +101,7 @@ server = function(input, output, session) {
   observeEvent(input$Param, {  
     UpdateVisualizations()
   })
-  
+ # update PID selection -------- 
   UpdatePIDSelection <- function() {
     # Update PID Choosers to show PID numbers based on the data
     if (subject == "Goal") {
@@ -230,6 +231,19 @@ server = function(input, output, session) {
       fittsRegPlotX<-ggplot(df_fitts, aes(FittsID,DeltaTime)) +xlab("ID")+theme_bw()+geom_point()
         output$fittsRegPlot <- renderPlotly(ggplotly(p = fittsRegPlotX) %>%
                                                config(scrollZoom = TRUE))
+        
+        my.formula <- y ~ x
+        #FittsLRcomp <-
+        output$fittsLRPlot <- renderPlot({FittsLRcompGG<- ggplot(df_fitts, aes(FittsID,DeltaTime, colour=InputResponders)) +  geom_smooth(method = "lm", fill = NA)+ stat_regline_equation(label.x = 3, label.y = 32)+ ylab("total movement+acquisition time")+xlab("ID")+ theme_bw()+geom_point()+facet_grid(~InputResponders)
+          print(FittsLRcompGG)})
+          #renderPlotly(ggplotly(p = FittsLRcomp) %>%
+          #                                   config(scrollZoom = TRUE))
+        
+        FittsLRLearn <-ggplot(df_fitts, aes(runTrialNo,DeltaTime/FittsID, group=InputResponders)) +xlab("ID")+theme_bw()+geom_point()
+        output$fittsLRLearnPlot <- renderPlotly(ggplotly(p = FittsLRLearn) %>%
+                                             config(scrollZoom = TRUE))
+        
+        
     } else if (subject == "Tunnel") {
       print(paste("df_tunnel filtered nrow:",nrow(df_tunnel)))
       output$tunnelHitType <- renderText(paste(length(df_tunnel$ID[df_tunnel$HitType == "Hit"]), " Successful Hits", sep=" "))
@@ -246,17 +260,10 @@ server = function(input, output, session) {
                                          yaxis = list(title = "Movment Time (s)"),
                                          legend = list(orientation = 'h'))
                                 )
-      
-      output$tunnelComparison <- renderPlotly(
-                                plot_ly(type = 'scatter',
-                                        mode='markers',
-                                        color = df_tunnel$InputType ,
-                                        # colors = pal,
-                                ) %>%
-                                  layout(xaxis = list(title = ""),
-                                         yaxis = list(title = "Movement Time (s)"),
-                                         legend = list(orientation = 'h'))
-                                )
+ 
+      FittsLRcomp <-ggplot(df_fitts, aes(FittsID,DeltaTime)) +xlab("HELLO ID")+theme_bw()+geom_point()
+      output$fittsLRPlot <- renderPlotly(ggplotly(p = FittsLRcomp) %>%
+                                            config(scrollZoom = TRUE))
       
     }
   }
