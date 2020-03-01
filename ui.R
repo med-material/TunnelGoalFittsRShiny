@@ -35,17 +35,17 @@ ui <- fluidPage(
               textOutput("goalType"),
               textOutput("goalRespond")
           ),
-          tabPanel("Input Responder Comparison",
-              plotlyOutput("goalComparison"),
-              tags$div(class = "vizcontrols-explainer"),
+        # tabPanel("Input Responder Comparison",
+        #      plotlyOutput("goalComparison"),
+        #      tags$div(class = "vizcontrols-explainer"),
               
-          tabPanel("Input Responder Comparison",
-                       plotOutput('TunnelLRPlot')
+              tabPanel("Input Responder Comparison",
+                       plotOutput('goalLRPlot')
                        #plotlyOutput("fittsRegPlot"),
-                       #tags$div(class = "vizcontrols-explainer")
+                       #tags$div(class = "vizcontrols-explainer"),
               )
           )
-        )
+        
     ),
     # PanelsFitts ---------------------------------------------------------------
         tabPanel(value  = "Fitts", id = "Fitts", strong("Fitts Law Test"),
@@ -66,18 +66,19 @@ ui <- fluidPage(
                         plotOutput('fittsLRPlot')
                         #plotlyOutput("fittsRegPlot"),
                         #tags$div(class = "vizcontrols-explainer")
-             ),
-             tabPanel("Input Responder Comparison",
-                      plotlyOutput("fittsLRLearnPlot"),
-                      tags$div(class = "vizcontrols-explainer")
              )
+             #,
+             #tabPanel("Input Responder Comparison",
+             #        plotlyOutput("fittsLRLearnPlot"),
+             #         tags$div(class = "vizcontrols-explainer")
+             #)
              # ,
              # tabPanel("Fitts LR progress",
              #          plotlyOutput("fittsLRLearnPlot"),
              #          tags$div(class = "vizcontrols-explainer")
              # )
   )),
-    # PanelsTunnel ---------------------------------------------------------------
+    # PanelTunnel ---------------------------------------------------------------
 
 
 
@@ -95,13 +96,14 @@ ui <- fluidPage(
                         textOutput("tunnelRespond")
                ),
                tabPanel("Input Responder Comparison",
-                        plotlyOutput("tunnelComparison"),
-                        tags$div(class = "vizcontrols-explainer")
+                      plotOutput("tunnelLRPlot")
+                #       tags$div(class = "vizcontrols-explainer")
                )
              )
-    )
-  ),
+    ),
+  
   # Rest of Page ---------------------------------------------------------------
   
   tags$footer()
+)
 )

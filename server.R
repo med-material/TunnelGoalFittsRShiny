@@ -91,8 +91,9 @@ server = function(input, output, session) {
 
     # VARIABLES
     df_goal <<- df_all %>% filter(GameType == "Goal")
+    df_goal$FittsID<<-log2(2*df_goal$ObjectDistanceCm/df_goal$ObjectHeightCm)
     df_tunnel <<- df_all %>% filter(GameType == "Tunnel")
-    df_tunnel$aspectRatio<-df_tunnel$df_fitts$ObjectDistanceCm/df_fitts$ObjectWidthCm
+    df_tunnel$aspectRatio<<-df_tunnel$ObjectDistanceCm/df_tunnel$ObjectWidthCm
     df_fitts <<- df_all %>% filter(GameType == "Fitts") 
     df_fitts$FittsID<<-log2(2*df_fitts$ObjectDistanceCm/df_fitts$ObjectWidthCm)
     UpdatePIDSelection()
@@ -198,6 +199,8 @@ server = function(input, output, session) {
                  yaxis = list(title = "Movement Time (s)"),
                  legend = list(orientation = 'h'))
       )
+      output$goalLRPlot <- renderPlot({goalLRcompGG<- ggplot(df_goal, aes(FittsID,DeltaTime, colour=InputResponders)) +  geom_smooth(method = "lm", fill = NA)+ stat_regline_equation()+ ylab("movement time in seconds")+xlab("ID")+ theme_bw()+geom_point()+facet_grid(~InputResponders)
+      print(goalLRcompGG)})
     } else if (subject == "Fitts") {
       print(paste("df_fitts filtered nrow:",nrow(df_fitts)))
       output$fittsHitType <- renderText(paste(length(df_fitts$ID[df_fitts$HitType == "Hit"]), " Successful Hits", sep=" "))
@@ -235,14 +238,17 @@ server = function(input, output, session) {
         
         my.formula <- y ~ x
         #FittsLRcomp <-
-        output$fittsLRPlot <- renderPlot({FittsLRcompGG<- ggplot(df_fitts, aes(FittsID,DeltaTime, colour=InputResponders)) +  geom_smooth(method = "lm", fill = NA)+ stat_regline_equation()+ ylab("total movement+acquisition time")+xlab("ID")+ theme_bw()+geom_point()+facet_grid(~InputResponders)
+        output$fittsLRPlot <- renderPlot({FittsLRcompGG<- ggplot(df_fitts, aes(FittsID,DeltaTime, colour=InputResponders)) +  geom_smooth(method = "lm", fill = NA)+ stat_regline_equation()+ ylab("movement time + confirmation in seconds")+xlab("ID")+ theme_bw()+geom_point()+facet_grid(~InputResponders)
           print(FittsLRcompGG)})
           #renderPlotly(ggplotly(p = FittsLRcomp) %>%
           #                                   config(scrollZoom = TRUE))
         
-        FittsLRLearn <-ggplot(df_fitts, aes(runTrialNo,DeltaTime/FittsID, group=InputResponders)) +xlab("ID")+theme_bw()+geom_point()
-        output$fittsLRLearnPlot <- renderPlotly(ggplotly(p = FittsLRLearn) %>%
-                                             config(scrollZoom = TRUE))
+        
+  #      FittsLRLearn <-ggplot(df_fitts, aes(runTrialNo,DeltaTime/FittsID, group=InputResponders)) +xlab("ID")+theme_bw()+geom_point()
+  #      output$fittsLRLearnPlot <- renderPlotly(ggplotly(p = FittsLRLearn) %>%
+  #                                           config(scrollZoom = TRUE))
+        
+        
         
         
     } else if (subject == "Tunnel") {
@@ -261,13 +267,13 @@ server = function(input, output, session) {
                                          yaxis = list(title = "Movment Time (s)"),
                                          legend = list(orientation = 'h'))
                                 )
-      output$tunnelLRPlot <- renderPlot({TunnelLRcompGG<- ggplot(df_tunnel, aes(ObjectWidthCm/ObjectHeightCm,DeltaTime, colour=InputResponders)) +  geom_smooth(method = "lm", fill = NA)+ stat_regline_equation()+ ylab("total movement time")+xlab("aspect ratio ")+ theme_bw()+geom_point()+facet_grid(~InputResponders)
+      output$tunnelLRPlot <- renderPlot({TunnelLRcompGG<- ggplot(df_tunnel, aes(aspectRatio,DeltaTime, colour=InputResponders)) +  geom_smooth(method = "lm", fill = NA)+ stat_regline_equation()+ ylab("total movement time")+xlab("aspect ratio ")+ theme_bw()+geom_point()+facet_grid(~InputResponders)
       print(TunnelLRcompGG)})
       
-      FittsLRcomp <-ggplot(df_fitts, aes(FittsID,DeltaTime)) +xlab("HELLO ID")+theme_bw()+geom_point()
-      output$fittsLRPlot <- renderPlotly(ggplotly(p = FittsLRcomp) %>%
-                                            config(scrollZoom = TRUE))
-      
+      # FittsLRcomp <-ggplot(df_fitts, aes(FittsID,DeltaTime)) +xlab("HELLO ID")+theme_bw()+geom_point()
+      # output$fittsLRPlot <- renderPlotly(ggplotly(p = FittsLRcomp) %>%
+      #                                       config(scrollZoom = TRUE))
+      # 
     }
   }
   
