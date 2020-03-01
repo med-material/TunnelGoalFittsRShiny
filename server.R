@@ -92,6 +92,7 @@ server = function(input, output, session) {
     # VARIABLES
     df_goal <<- df_all %>% filter(GameType == "Goal")
     df_tunnel <<- df_all %>% filter(GameType == "Tunnel")
+    df_tunnel$aspectRatio<-df_tunnel$df_fitts$ObjectDistanceCm/df_fitts$ObjectWidthCm
     df_fitts <<- df_all %>% filter(GameType == "Fitts") 
     df_fitts$FittsID<<-log2(2*df_fitts$ObjectDistanceCm/df_fitts$ObjectWidthCm)
     UpdatePIDSelection()
@@ -234,7 +235,7 @@ server = function(input, output, session) {
         
         my.formula <- y ~ x
         #FittsLRcomp <-
-        output$fittsLRPlot <- renderPlot({FittsLRcompGG<- ggplot(df_fitts, aes(FittsID,DeltaTime, colour=InputResponders)) +  geom_smooth(method = "lm", fill = NA)+ stat_regline_equation(label.x = 3, label.y = 32)+ ylab("total movement+acquisition time")+xlab("ID")+ theme_bw()+geom_point()+facet_grid(~InputResponders)
+        output$fittsLRPlot <- renderPlot({FittsLRcompGG<- ggplot(df_fitts, aes(FittsID,DeltaTime, colour=InputResponders)) +  geom_smooth(method = "lm", fill = NA)+ stat_regline_equation()+ ylab("total movement+acquisition time")+xlab("ID")+ theme_bw()+geom_point()+facet_grid(~InputResponders)
           print(FittsLRcompGG)})
           #renderPlotly(ggplotly(p = FittsLRcomp) %>%
           #                                   config(scrollZoom = TRUE))
@@ -260,7 +261,9 @@ server = function(input, output, session) {
                                          yaxis = list(title = "Movment Time (s)"),
                                          legend = list(orientation = 'h'))
                                 )
- 
+      output$tunnelLRPlot <- renderPlot({TunnelLRcompGG<- ggplot(df_tunnel, aes(ObjectWidthCm/ObjectHeightCm,DeltaTime, colour=InputResponders)) +  geom_smooth(method = "lm", fill = NA)+ stat_regline_equation()+ ylab("total movement time")+xlab("aspect ratio ")+ theme_bw()+geom_point()+facet_grid(~InputResponders)
+      print(TunnelLRcompGG)})
+      
       FittsLRcomp <-ggplot(df_fitts, aes(FittsID,DeltaTime)) +xlab("HELLO ID")+theme_bw()+geom_point()
       output$fittsLRPlot <- renderPlotly(ggplotly(p = FittsLRcomp) %>%
                                             config(scrollZoom = TRUE))

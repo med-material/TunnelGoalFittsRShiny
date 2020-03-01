@@ -37,7 +37,13 @@ ui <- fluidPage(
           ),
           tabPanel("Input Responder Comparison",
               plotlyOutput("goalComparison"),
-              tags$div(class = "vizcontrols-explainer")
+              tags$div(class = "vizcontrols-explainer"),
+              
+          tabPanel("Input Responder Comparison",
+                       plotOutput('TunnelLRPlot')
+                       #plotlyOutput("fittsRegPlot"),
+                       #tags$div(class = "vizcontrols-explainer")
+              )
           )
         )
     ),
@@ -56,7 +62,7 @@ ui <- fluidPage(
                         textOutput("fittsType"),
                         textOutput("fittsRespond")
                ),
-               tabPanel("Fitts regression line plot",
+               tabPanel("Input Responder Comparison",
                         plotOutput('fittsLRPlot')
                         #plotlyOutput("fittsRegPlot"),
                         #tags$div(class = "vizcontrols-explainer")
