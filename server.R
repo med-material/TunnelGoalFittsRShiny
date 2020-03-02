@@ -14,6 +14,7 @@ server = function(input, output, session) {
   
   # define colors to use in plots.
   colorPalette <- c("#c94232","#239a37")
+  all_accounts = RetreiveUniqueColVals("tunnel_fit_test","Email")
   
   # a variable we use, if we filter based on pid.
   pid_index <- NULL
