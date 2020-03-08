@@ -43,7 +43,9 @@ ui <- fluidPage(
                        plotOutput('goalLRPlot')
                        #plotlyOutput("fittsRegPlot"),
                        #tags$div(class = "vizcontrols-explainer"),
-              )
+              ),
+              tabPanel("Pressure Input Comparison",
+                 plotOutput('goalLRPressurePlot'))
           )
         
     ),
@@ -66,7 +68,10 @@ ui <- fluidPage(
                         plotOutput('fittsLRPlot')
                         #plotlyOutput("fittsRegPlot"),
                         #tags$div(class = "vizcontrols-explainer")
-             )
+               ),
+                tabPanel("Pressure Input Responder comparison",
+                      plotOutput('fittsLRPlotPressure')
+                )
              #,
              #tabPanel("Input Responder Comparison",
              #        plotlyOutput("fittsLRLearnPlot"),
@@ -98,6 +103,9 @@ ui <- fluidPage(
                tabPanel("Input Responder Comparison",
                       plotOutput("tunnelLRPlot")
                 #       tags$div(class = "vizcontrols-explainer")
+               ),
+               tabPanel("Pressure Input Responder comparison",
+                        plotOutput('TunnelLRPlotPressure')
                )
              )
     ),

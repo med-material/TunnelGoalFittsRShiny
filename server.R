@@ -201,6 +201,8 @@ server = function(input, output, session) {
       )
       output$goalLRPlot <- renderPlot({goalLRcompGG<- ggplot(df_goal, aes(FittsID,DeltaTime, colour=InputResponders)) +  geom_smooth(method = "lm", fill = NA)+ stat_regline_equation()+ ylab("movement time in seconds")+xlab("ID")+ theme_bw()+geom_point()+facet_grid(~InputResponders)
       print(goalLRcompGG)})
+      output$goalLRPressurePlot <- renderPlot({goalLRcompPress<- ggplot(df_goal[df_goal$InputType=="pressuresensor",], aes(FittsID,DeltaTime, colour=InputResponders)) +  geom_smooth(method = "lm", fill = NA)+ stat_regline_equation()+ ylab("movement time in seconds")+xlab("ID")+ theme_bw()+geom_point()+facet_grid(~InputResponders)
+      print(goalLRcompPress)})
     } else if (subject == "Fitts") {
       print(paste("df_fitts filtered nrow:",nrow(df_fitts)))
       output$fittsHitType <- renderText(paste(length(df_fitts$ID[df_fitts$HitType == "Hit"]), " Successful Hits", sep=" "))
@@ -242,7 +244,8 @@ server = function(input, output, session) {
           print(FittsLRcompGG)})
           #renderPlotly(ggplotly(p = FittsLRcomp) %>%
           #                                   config(scrollZoom = TRUE))
-        
+        output$fittsLRPlotPressure <- renderPlot({FittsLRcompPress<- ggplot(df_fitts[df_fitts$InputType=="pressuresensor",], aes(FittsID,DeltaTime, colour=InputResponders)) +  geom_smooth(method = "lm", fill = NA)+ stat_regline_equation()+ ylab("movement time + confirmation in seconds")+xlab("ID")+ theme_bw()+geom_point()+facet_grid(~InputResponders)
+        print(FittsLRcompPress)})
         
   #      FittsLRLearn <-ggplot(df_fitts, aes(runTrialNo,DeltaTime/FittsID, group=InputResponders)) +xlab("ID")+theme_bw()+geom_point()
   #      output$fittsLRLearnPlot <- renderPlotly(ggplotly(p = FittsLRLearn) %>%
@@ -269,6 +272,11 @@ server = function(input, output, session) {
                                 )
       output$tunnelLRPlot <- renderPlot({TunnelLRcompGG<- ggplot(df_tunnel, aes(aspectRatio,DeltaTime, colour=InputResponders)) +  geom_smooth(method = "lm", fill = NA)+ stat_regline_equation()+ ylab("total movement time")+xlab("aspect ratio ")+ theme_bw()+geom_point()+facet_grid(~InputResponders)
       print(TunnelLRcompGG)})
+      
+      output$TunnelLRPlotPressure <- renderPlot({TunnelLRcompPress<- ggplot(df_tunnel[df_tunnel$InputType=="pressuresensor",], aes(aspectRatio,DeltaTime, colour=InputResponders)) +  geom_smooth(method = "lm", fill = NA)+ stat_regline_equation()+ ylab("total movement time")+xlab("aspect ratio ")+ theme_bw()+geom_point()+facet_grid(~InputResponders)
+      print(TunnelLRcompPress)})
+      
+      
       
       # FittsLRcomp <-ggplot(df_fitts, aes(FittsID,DeltaTime)) +xlab("HELLO ID")+theme_bw()+geom_point()
       # output$fittsLRPlot <- renderPlotly(ggplotly(p = FittsLRcomp) %>%
