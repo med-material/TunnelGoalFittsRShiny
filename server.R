@@ -200,7 +200,7 @@ server = function(input, output, session) {
                  yaxis = list(title = "Movement Time (s)"),
                  legend = list(orientation = 'h'))
       )
-      output$goalLRPlot <- renderPlot({goalLRcompGG<- ggplot(df_goal, aes(FittsID,DeltaTime, colour=InputResponders)) +  geom_smooth(method = "lm", fill = NA)+ stat_regline_equation()+ ylab("movement time in seconds")+xlab("ID")+ theme_bw()+geom_point()+facet_grid(~InputResponders)
+      output$goalLRPlot <- renderPlot({goalLRcompGG<- ggplot(df_goal, aes(FittsID,DeltaTime, colour=InputResponders)) +  geom_smooth(method = "lm", fill = NA)+ stat_regline_equation()+ ylab("movement time in seconds")+xlab("ID")+ theme_bw()+geom_point()+facet_grid(cols = vars(InputResponders),rows = vars(InputType))
       print(goalLRcompGG)})
       output$goalLRPressurePlot <- renderPlot({goalLRcompPress<- ggplot(df_goal[df_goal$InputType=="pressuresensor",], aes(FittsID,DeltaTime, colour=InputResponders)) +  geom_smooth(method = "lm", fill = NA)+ stat_regline_equation()+ ylab("movement time in seconds")+xlab("ID")+ theme_bw()+geom_point()+facet_grid(~InputResponders)
       print(goalLRcompPress)})
@@ -241,7 +241,7 @@ server = function(input, output, session) {
         
         my.formula <- y ~ x
         #FittsLRcomp <-
-        output$fittsLRPlot <- renderPlot({FittsLRcompGG<- ggplot(df_fitts, aes(FittsID,DeltaTime, colour=InputResponders)) +  geom_smooth(method = "lm", fill = NA)+ stat_regline_equation()+ ylab("movement time + confirmation in seconds")+xlab("ID")+ theme_bw()+geom_point()+facet_grid(~InputResponders)
+        output$fittsLRPlot <- renderPlot({FittsLRcompGG<- ggplot(df_fitts, aes(FittsID,DeltaTime, colour=InputResponders)) +  geom_smooth(method = "lm", fill = NA)+ stat_regline_equation()+ ylab("movement time + confirmation in seconds")+xlab("ID")+ theme_bw()+geom_point()+facet_grid(cols = vars(InputResponders),rows = vars(InputType))
           print(FittsLRcompGG)})
           #renderPlotly(ggplotly(p = FittsLRcomp) %>%
           #                                   config(scrollZoom = TRUE))
@@ -271,7 +271,7 @@ server = function(input, output, session) {
                                          yaxis = list(title = "Movment Time (s)"),
                                          legend = list(orientation = 'h'))
                                 )
-      output$tunnelLRPlot <- renderPlot({TunnelLRcompGG<- ggplot(df_tunnel, aes(aspectRatio,DeltaTime, colour=InputResponders)) +  geom_smooth(method = "lm", fill = NA)+ stat_regline_equation()+ ylab("total movement time")+xlab("aspect ratio ")+ theme_bw()+geom_point()+facet_grid(~InputResponders)
+      output$tunnelLRPlot <- renderPlot({TunnelLRcompGG<- ggplot(df_tunnel, aes(aspectRatio,DeltaTime, colour=InputResponders)) +  geom_smooth(method = "lm", fill = NA)+ stat_regline_equation()+ ylab("total movement time")+xlab("aspect ratio ")+ theme_bw()+geom_point()+facet_grid(cols = vars(InputResponders),rows = vars(InputType))
       print(TunnelLRcompGG)})
       
       output$TunnelLRPlotPressure <- renderPlot({TunnelLRcompPress<- ggplot(df_tunnel[df_tunnel$InputType=="pressuresensor",], aes(aspectRatio,DeltaTime, colour=InputResponders)) +  geom_smooth(method = "lm", fill = NA)+ stat_regline_equation()+ ylab("total movement time")+xlab("aspect ratio ")+ theme_bw()+geom_point()+facet_grid(~InputResponders)
