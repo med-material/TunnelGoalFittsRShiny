@@ -200,10 +200,14 @@ server = function(input, output, session) {
                  yaxis = list(title = "Movement Time (s)"),
                  legend = list(orientation = 'h'))
       )
-      output$goalLRPlot <- renderPlot({goalLRcompGG<- ggplot(df_goal, aes(FittsID,DeltaTime, colour=InputResponders)) +  geom_smooth(method = "lm", fill = NA)+ stat_regline_equation()+ ylab("movement time in seconds")+xlab("ID")+ theme_bw()+geom_point()+facet_grid(cols = vars(InputResponders),rows = vars(InputType))
+      output$goalLRPlot <- renderPlot({goalLRcompGG<- ggplot(df_goal, aes(FittsID,DeltaTime, colour=InputResponders)) +  geom_smooth(method = "lm", fill = NA)+ ylab("movement time in seconds")+xlab("ID")+ theme_bw()+geom_point()+ stat_regline_equation(color="black")+facet_grid(cols = vars(InputResponders),rows = vars(InputType))
       print(goalLRcompGG)})
-      output$goalLRPressurePlot <- renderPlot({goalLRcompPress<- ggplot(df_goal[df_goal$InputType=="pressuresensor",], aes(FittsID,DeltaTime, colour=InputResponders)) +  geom_smooth(method = "lm", fill = NA)+ stat_regline_equation()+ ylab("movement time in seconds")+xlab("ID")+ theme_bw()+geom_point()+facet_grid(~InputResponders)
+      output$goalLRPressurePlot <- renderPlot({goalLRcompPress<- ggplot(df_goal[df_goal$InputType=="pressuresensor",], aes(FittsID,DeltaTime, colour=InputResponders)) +  geom_smooth(method = "lm", fill = NA)+ ylab("movement time in seconds")+xlab("ID")+ theme_bw()+geom_point()+ stat_regline_equation(color="black")+facet_grid(~InputResponders)
       print(goalLRcompPress)})
+      
+      output$GoalDeviceComp <- renderPlot({GoalDeviceCompPlot<- ggplot(df_goal, aes(FittsID,DeltaTime, group=InputType,colour=InputType)) +  geom_smooth(method = "lm", fill = NA)+ ylab("movement time")+xlab("ID")+ theme_bw()+geom_point()+ stat_regline_equation(color="black")+facet_grid(~InputResponders)
+      print(GoalDeviceCompPlot)})
+      
     } else if (subject == "Fitts") {
       print(paste("df_fitts filtered nrow:",nrow(df_fitts)))
       output$fittsHitType <- renderText(paste(length(df_fitts$ID[df_fitts$HitType == "Hit"]), " Successful Hits", sep=" "))
@@ -241,12 +245,20 @@ server = function(input, output, session) {
         
         my.formula <- y ~ x
         #FittsLRcomp <-
-        output$fittsLRPlot <- renderPlot({FittsLRcompGG<- ggplot(df_fitts, aes(FittsID,DeltaTime, colour=InputResponders)) +  geom_smooth(method = "lm", fill = NA)+ stat_regline_equation()+ ylab("movement time + confirmation in seconds")+xlab("ID")+ theme_bw()+geom_point()+facet_grid(cols = vars(InputResponders),rows = vars(InputType))
+        output$fittsLRPlot <- renderPlot({FittsLRcompGG<- ggplot(df_fitts, aes(FittsID,DeltaTime, colour=InputResponders)) +  geom_smooth(method = "lm", fill = NA)+ ylab("movement time + confirmation in seconds")+xlab("ID")+ theme_bw()+geom_point()+ stat_regline_equation(color="black")+facet_grid(cols = vars(InputResponders),rows = vars(InputType))
           print(FittsLRcompGG)})
           #renderPlotly(ggplotly(p = FittsLRcomp) %>%
           #                                   config(scrollZoom = TRUE))
-        output$fittsLRPlotPressure <- renderPlot({FittsLRcompPress<- ggplot(df_fitts[df_fitts$InputType=="pressuresensor",], aes(FittsID,DeltaTime, colour=InputResponders)) +  geom_smooth(method = "lm", fill = NA)+ stat_regline_equation()+ ylab("movement time + confirmation in seconds")+xlab("ID")+ theme_bw()+geom_point()+facet_grid(~InputResponders)
+        output$fittsLRPlotPressure <- renderPlot({FittsLRcompPress<- ggplot(df_fitts[df_fitts$InputType=="pressuresensor",], aes(FittsID,DeltaTime, colour=InputResponders)) +  geom_smooth(method = "lm", fill = NA)+ ylab("movement time + confirmation in seconds")+xlab("ID")+ theme_bw()+geom_point()+ stat_regline_equation(color="black")+facet_grid(~InputResponders)
         print(FittsLRcompPress)})
+        
+        output$fittsDeviceComp <- renderPlot({fittsDeviceCompPlot<- ggplot(df_fitts, aes(FittsID,DeltaTime, group=InputType,colour=InputType)) +  geom_smooth(method = "lm", fill = NA)+ ylab("movement time + confirmation in seconds")+xlab("ID")+ theme_bw()+geom_point()+ stat_regline_equation(color="black")+facet_grid(~InputResponders)
+        print(fittsDeviceCompPlot)}
+        
+        )
+        
+        
+        
         
   #      FittsLRLearn <-ggplot(df_fitts, aes(runTrialNo,DeltaTime/FittsID, group=InputResponders)) +xlab("ID")+theme_bw()+geom_point()
   #      output$fittsLRLearnPlot <- renderPlotly(ggplotly(p = FittsLRLearn) %>%

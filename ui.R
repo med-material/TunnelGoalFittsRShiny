@@ -45,7 +45,13 @@ ui <- fluidPage(
                        #tags$div(class = "vizcontrols-explainer"),
               ),
               tabPanel("Pressure Input Comparison",
-                 plotOutput('goalLRPressurePlot'))
+                 plotOutput('goalLRPressurePlot')),
+        
+            tabPanel("Input Device Comparison",
+                 plotOutput('GoalDeviceComp')
+                 #plotlyOutput("fittsRegPlot"),
+                 #tags$div(class = "vizcontrols-explainer")
+        )
           )
         
     ),
@@ -71,7 +77,14 @@ ui <- fluidPage(
                ),
                 tabPanel("Pressure Input Responder comparison",
                       plotOutput('fittsLRPlotPressure')
-                )
+                ),
+               
+               tabPanel("Input Device Comparison",
+                        plotOutput('fittsDeviceComp')
+                        #plotlyOutput("fittsRegPlot"),
+                        #tags$div(class = "vizcontrols-explainer")
+               )
+               
              #,
              #tabPanel("Input Responder Comparison",
              #        plotlyOutput("fittsLRLearnPlot"),
@@ -82,7 +95,8 @@ ui <- fluidPage(
              #          plotlyOutput("fittsLRLearnPlot"),
              #          tags$div(class = "vizcontrols-explainer")
              # )
-  )),
+  
+             )),
     # PanelTunnel ---------------------------------------------------------------
 
 

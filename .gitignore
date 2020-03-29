@@ -38,3 +38,4 @@ rsconnect/
 # Credentials to connect to the DB
 
 credentials.csv
+.Rproj.user
