@@ -51,6 +51,12 @@ ui <- fluidPage(
                  plotOutput('GoalDeviceComp')
                  #plotlyOutput("fittsRegPlot"),
                  #tags$div(class = "vizcontrols-explainer")
+        ),
+        
+        tabPanel("Input Device Comparison Agg by PID",
+                 plotOutput('GoalDeviceCompAgg')
+                 #plotlyOutput("fittsRegPlot"),
+                 #tags$div(class = "vizcontrols-explainer")
         )
           )
         
@@ -83,6 +89,12 @@ ui <- fluidPage(
                         plotOutput('fittsDeviceComp')
                         #plotlyOutput("fittsRegPlot"),
                         #tags$div(class = "vizcontrols-explainer")
+                ),
+                        
+                        tabPanel("Input Device Comparison Agg by PID",
+                                 plotOutput('fittsDeviceCompAgg')
+                                 #plotlyOutput("fittsRegPlot"),
+                                 #tags$div(class = "vizcontrols-explainer")
                )
                
              #,

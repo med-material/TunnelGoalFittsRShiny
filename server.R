@@ -93,10 +93,15 @@ server = function(input, output, session) {
     # VARIABLES
     df_goal <<- df_all %>% filter(GameType == "Goal")
     df_goal$FittsID<<-log2(2*df_goal$ObjectDistanceCm/df_goal$ObjectHeightCm)
+    df_goalAgg<<-df_goal %>% group_by(Email,PID, InputType, InputResponders,FittsID) %>% summarize(meanMT=mean(DeltaTime,na.rm = TRUE))
+    # df_goalAggEnt<<-df_goalAgg %>% group_by(Email,PID, InputType, InputResponders) %>% summarize(total.count=n())
     df_tunnel <<- df_all %>% filter(GameType == "Tunnel")
     df_tunnel$aspectRatio<<-df_tunnel$ObjectDistanceCm/df_tunnel$ObjectWidthCm
-    df_fitts <<- df_all %>% filter(GameType == "Fitts") 
+    df_fitts <<- df_all %>% filter(GameType == "Fitts")
+    df_fitts<<-df_fitts[df_fitts$DeltaTime<5,]
     df_fitts$FittsID<<-log2(2*df_fitts$ObjectDistanceCm/df_fitts$ObjectWidthCm)
+    df_fittsAgg<<-df_fitts %>% group_by(Email,PID, InputType, InputResponders,FittsID) %>% summarize(meanMT=mean(DeltaTime,na.rm = TRUE))
+    # df_fittsAggEnt<<-df_fittsAgg %>% group_by(Email,PID, InputType, InputResponders) %>% summarize(total.count=n())
     UpdatePIDSelection()
     
     UpdateVisualizations()
@@ -169,6 +174,7 @@ server = function(input, output, session) {
       df_goal <- df_goal %>% filter(Email %in% pid_email) %>% filter(PID %in% pid_name)
       df_tunnel <- df_tunnel %>% filter(Email %in% pid_email) %>% filter(PID %in% pid_name)
       df_fitts <- df_fitts %>% filter(Email %in% pid_email) %>% filter(PID %in% pid_name)
+      
     }
     if (subject == "Goal") {
       print(paste("df_goal filtered nrow:",nrow(df_goal)))
@@ -200,13 +206,19 @@ server = function(input, output, session) {
                  yaxis = list(title = "Movement Time (s)"),
                  legend = list(orientation = 'h'))
       )
-      output$goalLRPlot <- renderPlot({goalLRcompGG<- ggplot(df_goal, aes(FittsID,DeltaTime, colour=InputResponders)) +  geom_smooth(method = "lm", fill = NA)+ ylab("movement time in seconds")+xlab("ID")+ theme_bw()+geom_point()+ stat_regline_equation(color="black")+facet_grid(cols = vars(InputResponders),rows = vars(InputType))
+      output$goalLRPlot <- renderPlot({goalLRcompGG<- ggplot(df_goal, aes(FittsID,DeltaTime, colour=InputResponders)) +  geom_smooth(method = "lm", fill = NA)+ ylab("movement time in seconds")+xlab("ID")+ theme_bw()+geom_point()+ stat_regline_equation(color="black",aes(label =  paste(..eq.label.., ..rr.label.., sep = "~~~~")))+facet_grid(cols = vars(InputResponders),rows = vars(InputType))
       print(goalLRcompGG)})
-      output$goalLRPressurePlot <- renderPlot({goalLRcompPress<- ggplot(df_goal[df_goal$InputType=="pressuresensor",], aes(FittsID,DeltaTime, colour=InputResponders)) +  geom_smooth(method = "lm", fill = NA)+ ylab("movement time in seconds")+xlab("ID")+ theme_bw()+geom_point()+ stat_regline_equation(color="black")+facet_grid(~InputResponders)
+      output$goalLRPressurePlot <- renderPlot({goalLRcompPress<- ggplot(df_goal[df_goal$InputType=="pressuresensor",], aes(FittsID,DeltaTime, colour=InputResponders)) +  geom_smooth(method = "lm", fill = NA)+ ylab("movement time in seconds")+xlab("ID")+ theme_bw()+geom_point()+ stat_regline_equation(color="black",aes(label =  paste(..eq.label.., ..rr.label.., sep = "~~~~")))+facet_grid(~InputResponders)
       print(goalLRcompPress)})
       
-      output$GoalDeviceComp <- renderPlot({GoalDeviceCompPlot<- ggplot(df_goal, aes(FittsID,DeltaTime, group=InputType,colour=InputType)) +  geom_smooth(method = "lm", fill = NA)+ ylab("movement time")+xlab("ID")+ theme_bw()+geom_point()+ stat_regline_equation(color="black")+facet_grid(~InputResponders)
+      output$GoalDeviceComp <- renderPlot({GoalDeviceCompPlot<- ggplot(df_goal, aes(FittsID,DeltaTime, group=InputType,colour=InputType)) +  geom_smooth(method = "lm", fill = NA)+ ylab("movement time")+xlab("ID")+ theme_bw()+geom_point()+ stat_regline_equation(color="black",aes(label =  paste(..eq.label.., ..rr.label.., sep = "~~~~")))+facet_grid(cols = vars(InputResponders),rows = vars(InputType))
       print(GoalDeviceCompPlot)})
+      
+      # output$GoalDeviceCompAgg <- renderPlot({GoalDeviceCompAggPlot<- ggplot(df_goalAgg, aes(FittsID,DeltaTime, group=InputType,colour=InputType)) +  geom_smooth(method = "lm", fill = NA)+ ylab("movement time")+xlab("ID")+ theme_bw()+geom_point()+ stat_regline_equation(color="black",aes(label =  paste(..eq.label.., ..rr.label.., sep = "~~~~")))+facet_grid(~InputResponders)
+      # print(GoalDeviceCompAggPlot)})
+      
+      output$GoalDeviceCompAgg <- renderPlot({GoalDeviceCompAggPlot<- ggplot(df_goalAgg, aes(FittsID,meanMT, colour=InputResponders)) +  geom_smooth(method = "lm", fill = NA)+ ylab("movement time + confirmation in seconds")+xlab("ID")+ theme_bw()+geom_point()+ stat_regline_equation(color="black",aes(label =  paste(..eq.label.., ..rr.label.., sep = "~~~~")))+facet_grid(cols = vars(InputResponders),rows = vars(InputType))
+      print(GoalDeviceCompAggPlot)})
       
     } else if (subject == "Fitts") {
       print(paste("df_fitts filtered nrow:",nrow(df_fitts)))
@@ -245,17 +257,19 @@ server = function(input, output, session) {
         
         my.formula <- y ~ x
         #FittsLRcomp <-
-        output$fittsLRPlot <- renderPlot({FittsLRcompGG<- ggplot(df_fitts, aes(FittsID,DeltaTime, colour=InputResponders)) +  geom_smooth(method = "lm", fill = NA)+ ylab("movement time + confirmation in seconds")+xlab("ID")+ theme_bw()+geom_point()+ stat_regline_equation(color="black")+facet_grid(cols = vars(InputResponders),rows = vars(InputType))
+        output$fittsLRPlot <- renderPlot({FittsLRcompGG<- ggplot(df_fitts, aes(FittsID,DeltaTime, colour=InputResponders)) +  geom_smooth(method = "lm", fill = NA)+ ylab("movement time + confirmation in seconds")+xlab("ID")+ theme_bw()+geom_point()+ stat_regline_equation(color="black",aes(label =  paste(..eq.label.., ..rr.label.., sep = "~~~~")))+facet_grid(cols = vars(InputResponders),rows = vars(InputType))
           print(FittsLRcompGG)})
           #renderPlotly(ggplotly(p = FittsLRcomp) %>%
           #                                   config(scrollZoom = TRUE))
-        output$fittsLRPlotPressure <- renderPlot({FittsLRcompPress<- ggplot(df_fitts[df_fitts$InputType=="pressuresensor",], aes(FittsID,DeltaTime, colour=InputResponders)) +  geom_smooth(method = "lm", fill = NA)+ ylab("movement time + confirmation in seconds")+xlab("ID")+ theme_bw()+geom_point()+ stat_regline_equation(color="black")+facet_grid(~InputResponders)
+        output$fittsLRPlotPressure <- renderPlot({FittsLRcompPress<- ggplot(df_fitts[df_fitts$InputType=="pressuresensor",], aes(FittsID,DeltaTime, colour=InputResponders)) +  geom_smooth(method = "lm", fill = NA)+ ylab("movement time + confirmation in seconds")+xlab("ID")+ theme_bw()+geom_point()+ stat_regline_equation(color="black",aes(label =  paste(..eq.label.., ..rr.label.., sep = "~~~~")))+facet_grid(~InputResponders)
         print(FittsLRcompPress)})
         
-        output$fittsDeviceComp <- renderPlot({fittsDeviceCompPlot<- ggplot(df_fitts, aes(FittsID,DeltaTime, group=InputType,colour=InputType)) +  geom_smooth(method = "lm", fill = NA)+ ylab("movement time + confirmation in seconds")+xlab("ID")+ theme_bw()+geom_point()+ stat_regline_equation(color="black")+facet_grid(~InputResponders)
-        print(fittsDeviceCompPlot)}
+        output$fittsDeviceComp <- renderPlot({fittsDeviceCompPlot<- ggplot(df_fitts, aes(FittsID,DeltaTime, group=InputType,colour=InputType)) +  geom_smooth(method = "lm", fill = NA)+ ylab("movement time + confirmation in seconds")+xlab("ID")+ theme_bw()+geom_point()+ stat_regline_equation(color="black",aes(label =  paste(..eq.label.., ..rr.label.., sep = "~~~~")))+facet_grid(cols = vars(InputResponders),rows = vars(InputType))
+        print(fittsDeviceCompPlot)})
         
-        )
+        output$fittsDeviceCompAgg <- renderPlot({fittsDeviceCompAggPlot<- ggplot(df_fittsAgg, aes(FittsID,meanMT, colour=InputResponders)) +  geom_smooth(method = "lm", fill = NA)+ ylab("movement time + confirmation in seconds")+xlab("ID")+ theme_bw()+geom_point()+ stat_regline_equation(color="black",aes(label =  paste(..eq.label.., ..rr.label.., sep = "~~~~")))+facet_grid(cols = vars(InputResponders),rows = vars(InputType))
+        print(fittsDeviceCompAggPlot)})
+        
         
         
         
