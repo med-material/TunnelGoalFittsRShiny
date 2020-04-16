@@ -63,6 +63,8 @@ RefreshDataSets <- function(colfilter) {
   df_all$GameType<<-factor(df_all$GameType,levels = c("Goal", "Fitts","Tunnel"))
   df_all$PID <<- as.factor(df_all$PID)
   df_all$TrialNo <<- as.factor(df_all$TrialNo)
+
+  df_all$TargetNumber<<-as.numeric(df_all$TargetNumber)
   
 }
 
