@@ -107,6 +107,7 @@ server <- function(input, output, session) {
       RefreshDataSets(input$emailSelect)
 
       # VARIABLES
+      df_all <<- df_all %>% mutate(TargetNumber=as.numeric(TargetNumber))
       df_goal <<- df_all %>% filter(GameType == "Goal")
       df_goal$FittsID <<- log2(2 * df_goal$ObjectDistanceCm / df_goal$ObjectHeightCm)
       df_goalAgg <<- df_goal %>%
@@ -117,7 +118,7 @@ server <- function(input, output, session) {
       df_tunnel$aspectRatio <<- df_tunnel$ObjectDistanceCm / df_tunnel$ObjectWidthCm
       df_fitts <<- df_all %>% filter(GameType == "Fitts")
       df_fitts <<- df_fitts[df_fitts$DeltaTime < 5, ]
-      df_fitts$FittsID <<- log2(2 * df_fitts$ObjectDistanceCm / df_fitts$ObjectWidthCm)
+      df_fitts$FittsID <<- log2(2 * (df_fitts$ObjectDistanceCm+df_fitts$ObjectWidthCm) / df_fitts$ObjectWidthCm)
       df_fittsAgg <<- df_fitts %>%
         group_by(Email, PID, InputType, InputResponders, FittsID) %>%
         summarize(meanMT = mean(DeltaTime, na.rm = TRUE))
@@ -202,7 +203,7 @@ server <- function(input, output, session) {
         filter(PID %in% pid_name)
       df_fitts <- df_fitts %>%
         filter(Email %in% pid_email) %>%
-        filter(PID %in% pid_name)
+        filter(PID %in% pid_name) 
     }
     if (subject == "Goal") {
       print(paste("df_goal filtered nrow:", nrow(df_goal)))
@@ -386,7 +387,17 @@ server <- function(input, output, session) {
         print(fittsDeviceCompAggPlot)
       })
 
-
+      output$fittsLearning <- renderPlot({
+        fittsDeviceCompAggPlot <- ggplot(df_fittsAgg, aes(FittsID, meanMT, colour = InputResponders)) +
+          geom_smooth(method = "lm", fill = NA) +
+          ylab("movement time + confirmation in seconds") +
+          xlab("ID") +
+          theme_bw() +
+          geom_point() +
+          stat_regline_equation(color = "black", aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~~"))) +
+          facet_grid(cols = vars(InputResponders), rows = vars(InputType))
+        print(fittsDeviceCompAggPlot)
+      })
 
 
 
