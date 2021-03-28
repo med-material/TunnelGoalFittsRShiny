@@ -153,7 +153,20 @@ ui <- fluidPage(
         )
       )
     ),
-
+    tabPanel(
+      value = "DHR", id = "DHR", strong("DHR test"),
+      navlistPanel(
+        widths = c(4, 8),
+        "Choose Visualization:",
+        tabPanel(
+          "Test Details",
+          plotOutput("DHRPlot"),
+          plotOutput("DHRerrPlot"),
+          tags$div(class = "vizcontrols-explainer")
+        )
+      )
+    ),
+    
     # Rest of Page ---------------------------------------------------------------
 
     tags$footer()

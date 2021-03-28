@@ -12,7 +12,8 @@ server <- function(input, output, session) {
   df_goal <- NULL
   df_tunnel <- NULL
   df_fitts <- NULL
-
+  df_DHR <- NULL
+  
   # define colors to use in plots.
   colorPalette <- c("#c94232", "#239a37")
   all_accounts <- RetreiveUniqueColVals("tunnel_fit_test", "Email")
@@ -107,22 +108,26 @@ server <- function(input, output, session) {
       RefreshDataSets(input$emailSelect)
 
       # VARIABLES
-      df_all <<- df_all %>% mutate(TargetNumber=as.numeric(TargetNumber))
-      df_goal <<- df_all %>% filter(GameType == "Goal")
+      df_all <<- df_all %>% mutate(TargetNumber=as.numeric(TargetNumber),hitScore=ifelse(HitType=="Hit",1,0))
+      df_goal <<- df_all %>% filter(GameType == "Goal" & is.na(CDGain)) 
       df_goal$FittsID <<- log2(2 * df_goal$ObjectDistanceCm / df_goal$ObjectHeightCm)
       df_goalAgg <<- df_goal %>%
+        filter(is.na(CDGain)) %>%
         group_by(Email, PID, InputType, InputResponders, FittsID) %>%
         summarize(meanMT = mean(DeltaTime, na.rm = TRUE))
       # df_goalAggEnt<<-df_goalAgg %>% group_by(Email,PID, InputType, InputResponders) %>% summarize(total.count=n())
-      df_tunnel <<- df_all %>% filter(GameType == "Tunnel")
+      df_tunnel <<- df_all %>% filter(GameType == "Tunnel" & is.na(CDGain))
       df_tunnel$aspectRatio <<- df_tunnel$ObjectDistanceCm / df_tunnel$ObjectWidthCm
-      df_fitts <<- df_all %>% filter(GameType == "Fitts")
+      df_fitts <<- df_all %>% filter(GameType == "Fitts" & is.na(CDGain))
       df_fitts <<- df_fitts[df_fitts$DeltaTime < 5, ]
       df_fitts$FittsID <<- log2(2 * (df_fitts$ObjectDistanceCm+df_fitts$ObjectWidthCm) / df_fitts$ObjectWidthCm)
       df_fittsAgg <<- df_fitts %>%
+        filter(HitType=='Hit' & is.na(CDGain)) %>% 
         group_by(Email, PID, InputType, InputResponders, FittsID) %>%
         summarize(meanMT = mean(DeltaTime, na.rm = TRUE))
+      df_DHR <<- df_all %>% filter(GameType == "Fitts" & !is.na(CDGain)) %>% mutate(FittsID=log2(2 * (ObjectDistanceCm+ObjectWidthCm) / ObjectWidthCm))
       # df_fittsAggEnt<<-df_fittsAgg %>% group_by(Email,PID, InputType, InputResponders) %>% summarize(total.count=n())
+      df_DHRagg <<- df_DHR %>% dplyr::group_by(Email,PID, InputType, InputResponders, FittsID, CDGain,ObjectWidthCm) %>% summarize(MTmean=mean(DeltaTime),errorRate=1-mean(hitScore))
       UpdatePIDSelection()
 
       UpdateVisualizations()
@@ -158,7 +163,16 @@ server <- function(input, output, session) {
       } else {
         choices <<- NULL
       }
+    } else if (subject == "DHR") {
+      participants <<- unique(df_DHR %>% group_by(Email) %>% distinct(PID))
+      participants$PID[is.na(participants$PID)] <<- "NA"
+      if (nrow(participants) > 0) {
+        choices <<- setNames(c(1:nrow(participants)), participants$PID)
+      } else {
+        choices <<- NULL
+      }
     }
+    
     if (!is.null(pid_query)) {
       pid_name <<- pid_query
       pid_query <<- NULL
@@ -204,6 +218,14 @@ server <- function(input, output, session) {
       df_fitts <- df_fitts %>%
         filter(Email %in% pid_email) %>%
         filter(PID %in% pid_name) 
+      df_DHR<-df_DHR %>%
+        filter(Email %in% pid_email) %>%
+        filter(PID %in% pid_name) %>%
+        filter(!is.na(CDGain)) 
+      df_DHRagg<-df_DHRagg %>%
+        filter(Email %in% pid_email) %>%
+        filter(PID %in% pid_name) %>%
+        filter(!is.na(CDGain)) 
     }
     if (subject == "Goal") {
       print(paste("df_goal filtered nrow:", nrow(df_goal)))
@@ -233,7 +255,7 @@ server <- function(input, output, session) {
         plot_ly(
           type = "scatter",
           mode = "markers",
-          color = df_goal$InputType,
+          color = df_goal$InputType
           # colors = pal,
         ) %>%
           layout(
@@ -266,7 +288,7 @@ server <- function(input, output, session) {
       })
 
       output$GoalDeviceComp <- renderPlot({
-        GoalDeviceCompPlot <- ggplot(df_goal, aes(FittsID, DeltaTime, group = InputType, colour = InputType)) +
+        GoalDeviceCompPlot <- ggplot(df_goal[df_goal$HitType=='Hit',], aes(FittsID, DeltaTime, group = InputType, colour = InputType)) +
           geom_smooth(method = "lm", fill = NA) +
           ylab("movement time") +
           xlab("ID") +
@@ -305,7 +327,7 @@ server <- function(input, output, session) {
           mode = "markers",
           # color = var3 ,
           # colors = pal,
-          data = df_fitts, x = ~TargetNumber, y = ~DeltaTime
+          data = df_fitts[df_fitts$HitType=='Hit',], x = ~TargetNumber, y = ~DeltaTime
         ) %>%
 
           layout(
@@ -319,7 +341,7 @@ server <- function(input, output, session) {
         plot_ly(
           type = "scatter",
           mode = "markers",
-          color = df_fitts$InputType,
+          color = df_fitts$InputType
           # colors = pal,
         ) %>%
           layout(
@@ -329,7 +351,7 @@ server <- function(input, output, session) {
           )
       )
       # Fitts plot with regression line and equation
-      fittsRegPlotX <- ggplot(df_fitts, aes(FittsID, DeltaTime)) +
+      fittsRegPlotX <- ggplot(df_fitts[df_fitts$HitType=='Hit',], aes(FittsID, DeltaTime)) +
         xlab("ID") +
         theme_bw() +
         geom_point()
@@ -339,7 +361,7 @@ server <- function(input, output, session) {
       my.formula <- y ~ x
       # FittsLRcomp <-
       output$fittsLRPlot <- renderPlot({
-        FittsLRcompGG <- ggplot(df_fitts, aes(FittsID, DeltaTime, colour = InputResponders)) +
+        FittsLRcompGG <- ggplot(df_fitts[df_fitts$HitType=='Hit',], aes(FittsID, DeltaTime, colour = InputResponders)) +
           geom_smooth(method = "lm", fill = NA) +
           ylab("movement time + confirmation in seconds") +
           xlab("ID") +
@@ -352,7 +374,7 @@ server <- function(input, output, session) {
       # renderPlotly(ggplotly(p = FittsLRcomp) %>%
       #                                   config(scrollZoom = TRUE))
       output$fittsLRPlotPressure <- renderPlot({
-        FittsLRcompPress <- ggplot(df_fitts[df_fitts$InputType == "pressuresensor", ], aes(FittsID, DeltaTime, colour = InputResponders)) +
+        FittsLRcompPress <- ggplot(df_fitts[df_fitts$InputType == "pressuresensor" & df_fitts$HitType=='Hit', ], aes(FittsID, DeltaTime, colour = InputResponders)) +
           geom_smooth(method = "lm", fill = NA) +
           ylab("movement time + confirmation in seconds") +
           xlab("ID") +
@@ -364,7 +386,7 @@ server <- function(input, output, session) {
       })
 
       output$fittsDeviceComp <- renderPlot({
-        fittsDeviceCompPlot <- ggplot(df_fitts, aes(FittsID, DeltaTime, group = InputType, colour = InputType)) +
+        fittsDeviceCompPlot <- ggplot(df_fitts[df_fitts$HitType=='Hit',], aes(FittsID, DeltaTime, group = InputType, colour = InputType)) +
           geom_smooth(method = "lm", fill = NA) +
           ylab("movement time + confirmation in seconds") +
           xlab("ID") +
@@ -404,7 +426,8 @@ server <- function(input, output, session) {
       #      FittsLRLearn <-ggplot(df_fitts, aes(runTrialNo,DeltaTime/FittsID, group=InputResponders)) +xlab("ID")+theme_bw()+geom_point()
       #      output$fittsLRLearnPlot <- renderPlotly(ggplotly(p = FittsLRLearn) %>%
       #                                           config(scrollZoom = TRUE))
-    } else if (subject == "Tunnel") {
+    } 
+    else if (subject == "Tunnel") {
       print(paste("df_tunnel filtered nrow:", nrow(df_tunnel)))
       output$tunnelHitType <- renderText(paste(length(df_tunnel$ID[df_tunnel$HitType == "Hit"]), " Successful Hits", sep = " "))
       output$tunnelWrongHits <- renderText(paste(length(df_tunnel$ID[df_tunnel$HitType == "Miss"]), " Errors", sep = " "))
@@ -416,7 +439,7 @@ server <- function(input, output, session) {
         plot_ly(
           type = "scatter",
           mode = "markers",
-          data = df_tunnel, x = ~TargetNumber, y = ~DeltaTime
+          data = df_tunnel[df_tunnel$HitType=='Hit',], x = ~TargetNumber, y = ~DeltaTime
         ) %>%
           layout(
             xaxis = list(title = "TargetNumber"),
@@ -425,7 +448,7 @@ server <- function(input, output, session) {
           )
       )
       output$tunnelLRPlot <- renderPlot({
-        TunnelLRcompGG <- ggplot(df_tunnel, aes(aspectRatio, DeltaTime, colour = InputResponders)) +
+        TunnelLRcompGG <- ggplot(df_tunnel[df_tunnel$HitType=='Hit',], aes(aspectRatio, DeltaTime, colour = InputResponders)) +
           geom_smooth(method = "lm", fill = NA) +
           stat_regline_equation() +
           ylab("total movement time") +
@@ -437,7 +460,7 @@ server <- function(input, output, session) {
       })
 
       output$TunnelLRPlotPressure <- renderPlot({
-        TunnelLRcompPress <- ggplot(df_tunnel[df_tunnel$InputType == "pressuresensor", ], aes(aspectRatio, DeltaTime, colour = InputResponders)) +
+        TunnelLRcompPress <- ggplot(df_tunnel[df_tunnel$InputType == "pressuresensor" & df_tunnel$HitType=='Hit', ], aes(aspectRatio, DeltaTime, colour = InputResponders)) +
           geom_smooth(method = "lm", fill = NA) +
           stat_regline_equation() +
           ylab("total movement time") +
@@ -447,13 +470,58 @@ server <- function(input, output, session) {
           facet_grid(~InputResponders)
         print(TunnelLRcompPress)
       })
+      
+      }else if (subject == "DHR") {
+        print(paste("df_DHR filtered nrow:", nrow(df_DHR)))
+        output$DHRHitType <- renderText(paste(length(df_DHR$ID[df_DHR$HitType == "Hit"]), " Successful Hits", sep = " "))
+        output$DHRWrongHits <- renderText(paste(length(df_DHR$ID[df_DHR$HitType == "Miss"]), " Errors", sep = " "))
+        output$DHRAverage <- renderText(paste("Average time : ", format(mean(df_DHR$DeltaTime)), sep = " "))
+        output$DHRType <- renderText(paste("Input Type :", unique(df_DHR$InputType), sep = " "))
+        output$DHRRespond <- renderText(paste("Input Responder :", unique(df_DHR$InputResponder), sep = " "))
+        
+        output$tunnelTestDetails <- renderPlotly(
+          plot_ly(
+            type = "scatter",
+            mode = "markers",
+            data = df_tunnel[df_tunnel$HitType=='Hit',], x = ~TargetNumber, y = ~DeltaTime
+          ) %>%
+            layout(
+              xaxis = list(title = "TargetNumber"),
+              yaxis = list(title = "Movment Time (s)"),
+              legend = list(orientation = "h")
+            )
+        )
+        output$DHRPlot <- renderPlot({
+          DHRPlot <- ggplot(df_DHRagg,mapping=aes(x=ObjectWidthCm*10/CDGain, y=MTmean),colour="Red")+
+            # geom_smooth(method = "lm", fill = NA) +
+            # stat_regline_equation() +
+            
+            geom_point(data=df_DHR[df_DHR$HitType=='Hit',],mapping=aes(x=ObjectWidthCm*10/CDGain, y=DeltaTime),colour="blue",size=3)+
+              geom_line()+geom_point(colour="Red",size=5) +
+          ylab("total movement time") +
+            xlab("target size in mm (in motor space)") +
+            theme_bw() + scale_x_reverse()
+          print(DHRPlot)
+        })
+        
+        output$DHRerrPlot <- renderPlot({
+          DHRerrPlot <- ggplot(df_DHRagg,mapping=aes(x=ObjectWidthCm*10/CDGain, y=errorRate),colour="Red")+
+            # geom_smooth(method = "lm", fill = NA) +
+            # stat_regline_equation() +
+            geom_line()+geom_point(colour="Red",size=5) +
+            ylab("error rate (misses)") +
+            xlab("target size in mm (in motor space)") +
+            theme_bw() + scale_x_reverse()
+          print(DHRerrPlot)
+        })
 
-
+        
 
       # FittsLRcomp <-ggplot(df_fitts, aes(FittsID,DeltaTime)) +xlab("HELLO ID")+theme_bw()+geom_point()
       # output$fittsLRPlot <- renderPlotly(ggplotly(p = FittsLRcomp) %>%
       #                                       config(scrollZoom = TRUE))
       #
-    }
+    
   }
+}
 }
