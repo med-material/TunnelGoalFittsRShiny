@@ -371,6 +371,18 @@ server <- function(input, output, session) {
           facet_grid(cols = vars(InputResponders), rows = vars(InputType))
         print(FittsLRcompGG)
       })
+      
+      output$fittsLRSinglePlot <- renderPlot({
+        fittsLRSinglePlot <- ggplot(df_fitts[df_fitts$HitType=='Hit',], aes(FittsID, DeltaTime, colour = InputResponders)) +
+          geom_smooth(method = "lm", fill = NA) +
+          ylab("movement time + confirmation in seconds") +
+          xlab("ID") +
+          theme_bw() +
+          geom_point() +
+          stat_regline_equation(color = "black", aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~~"))) 
+        print(fittsLRSinglePlot)
+      })
+      
       # renderPlotly(ggplotly(p = FittsLRcomp) %>%
       #                                   config(scrollZoom = TRUE))
       output$fittsLRPlotPressure <- renderPlot({
@@ -397,6 +409,17 @@ server <- function(input, output, session) {
         print(fittsDeviceCompPlot)
       })
 
+      output$fittsDeviceCompSPlot <- renderPlot({
+        fittsDeviceCompSPlot <- ggplot(df_fitts[df_fitts$HitType=='Hit',], aes(FittsID, DeltaTime, group = InputType, colour = InputType)) +
+          geom_smooth(method = "lm", fill = NA) +
+          ylab("movement time + confirmation in seconds") +
+          xlab("ID") +
+          theme_bw() +
+          geom_point() +
+          stat_regline_equation(color = "black", aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~~"))) 
+        print(fittsDeviceCompSPlot)
+      })
+      
       output$fittsDeviceCompAgg <- renderPlot({
         fittsDeviceCompAggPlot <- ggplot(df_fittsAgg, aes(FittsID, meanMT, colour = InputResponders)) +
           geom_smooth(method = "lm", fill = NA) +
