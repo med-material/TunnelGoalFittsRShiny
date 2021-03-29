@@ -275,6 +275,18 @@ server <- function(input, output, session) {
           facet_grid(cols = vars(InputResponders), rows = vars(InputType))
         print(goalLRcompGG)
       })
+      
+      output$goalLRSinglePlot <- renderPlot({
+        goalLRSinglePlot <- ggplot(df_goal, aes(FittsID, DeltaTime, group=InputResponders,colour = InputResponders)) +
+          geom_smooth(method = "lm", fill = NA) +
+          ylab("movement time in seconds") +
+          xlab("ID") +
+          theme_bw() +
+          geom_point() +
+          stat_regline_equation(color = "black", aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~~")))
+        print(goalLRSinglePlot)
+      })
+      
       output$goalLRPressurePlot <- renderPlot({
         goalLRcompPress <- ggplot(df_goal[df_goal$InputType == "pressuresensor", ], aes(FittsID, DeltaTime, colour = InputResponders)) +
           geom_smooth(method = "lm", fill = NA) +
@@ -297,6 +309,17 @@ server <- function(input, output, session) {
           stat_regline_equation(color = "black", aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~~"))) +
           facet_grid(cols = vars(InputResponders), rows = vars(InputType))
         print(GoalDeviceCompPlot)
+      })
+      
+      output$GoalDeviceCompSPlot <- renderPlot({
+        GoalDeviceCompSPlot <- ggplot(df_goal[df_goal$HitType=='Hit',], aes(FittsID, DeltaTime, group = InputType, colour = InputType)) +
+          geom_smooth(method = "lm", fill = NA) +
+          ylab("movement time") +
+          xlab("ID") +
+          theme_bw() +
+          geom_point() +
+          stat_regline_equation(color = "black", aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~~"))) 
+        print(GoalDeviceCompSPlot)
       })
 
       # output$GoalDeviceCompAgg <- renderPlot({GoalDeviceCompAggPlot<- ggplot(df_goalAgg, aes(FittsID,DeltaTime, group=InputType,colour=InputType)) +  geom_smooth(method = "lm", fill = NA)+ ylab("movement time")+xlab("ID")+ theme_bw()+geom_point()+ stat_regline_equation(color="black",aes(label =  paste(..eq.label.., ..rr.label.., sep = "~~~~")))+facet_grid(~InputResponders)

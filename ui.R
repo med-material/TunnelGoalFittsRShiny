@@ -45,7 +45,8 @@ ui <- fluidPage(
 
         tabPanel(
           "Input Responder Comparison",
-          plotOutput("goalLRPlot")
+          plotOutput("goalLRPlot"),
+          plotOutput("goalLRSinglePlot")
           # plotlyOutput("fittsRegPlot"),
           # tags$div(class = "vizcontrols-explainer"),
         ),
@@ -57,7 +58,9 @@ ui <- fluidPage(
 
         tabPanel(
           "Input Device Comparison",
-          plotOutput("GoalDeviceComp")
+          plotOutput("GoalDeviceComp"),
+          plotOutput("GoalDeviceCompSPlot")
+          
           # plotlyOutput("fittsRegPlot"),
           # tags$div(class = "vizcontrols-explainer")
         ),
