@@ -277,13 +277,13 @@ server <- function(input, output, session) {
       })
       
       output$goalLRSinglePlot <- renderPlot({
-        goalLRSinglePlot <- ggplot(df_goal, aes(FittsID, DeltaTime, group=InputResponders,colour = InputResponders)) +
+        goalLRSinglePlot <- ggplot(df_goal, aes(FittsID, DeltaTime, colour = InputResponders)) +
           geom_smooth(method = "lm", fill = NA) +
           ylab("movement time in seconds") +
           xlab("ID") +
           theme_bw() +
           geom_point() +
-          stat_regline_equation(color = "black", aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~~")))
+          stat_regline_equation( aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~~")))
         print(goalLRSinglePlot)
       })
       
@@ -312,13 +312,13 @@ server <- function(input, output, session) {
       })
       
       output$GoalDeviceCompSPlot <- renderPlot({
-        GoalDeviceCompSPlot <- ggplot(df_goal[df_goal$HitType=='Hit',], aes(FittsID, DeltaTime, group = InputType, colour = InputType)) +
+        GoalDeviceCompSPlot <- ggplot(df_goal[df_goal$HitType=='Hit',], aes(FittsID, DeltaTime,  colour = InputType)) +
           geom_smooth(method = "lm", fill = NA) +
           ylab("movement time") +
           xlab("ID") +
           theme_bw() +
           geom_point() +
-          stat_regline_equation(color = "black", aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~~"))) 
+          stat_regline_equation( aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~~"))) 
         print(GoalDeviceCompSPlot)
       })
 
@@ -396,13 +396,13 @@ server <- function(input, output, session) {
       })
       
       output$fittsLRSinglePlot <- renderPlot({
-        fittsLRSinglePlot <- ggplot(df_fitts[df_fitts$HitType=='Hit',], aes(FittsID, DeltaTime, colour = InputResponders)) +
+        fittsLRSinglePlot <- ggplot(df_fitts[df_fitts$HitType=='Hit',], aes(FittsID, DeltaTime, group =InputResponders, colour = InputResponders)) +
           geom_smooth(method = "lm", fill = NA) +
           ylab("movement time + confirmation in seconds") +
           xlab("ID") +
           theme_bw() +
           geom_point() +
-          stat_regline_equation(color = "black", aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~~"))) 
+          stat_regline_equation(aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~~"))) 
         print(fittsLRSinglePlot)
       })
       
@@ -421,25 +421,25 @@ server <- function(input, output, session) {
       })
 
       output$fittsDeviceComp <- renderPlot({
-        fittsDeviceCompPlot <- ggplot(df_fitts[df_fitts$HitType=='Hit',], aes(FittsID, DeltaTime, group = InputType, colour = InputType)) +
+        fittsDeviceCompPlot <- ggplot(df_fitts[df_fitts$HitType=='Hit',], aes(FittsID, DeltaTime, colour = InputType)) +
           geom_smooth(method = "lm", fill = NA) +
           ylab("movement time + confirmation in seconds") +
           xlab("ID") +
           theme_bw() +
           geom_point() +
-          stat_regline_equation(color = "black", aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~~"))) +
+          stat_regline_equation(aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~~"))) +
           facet_grid(cols = vars(InputResponders), rows = vars(InputType))
         print(fittsDeviceCompPlot)
       })
 
       output$fittsDeviceCompSPlot <- renderPlot({
-        fittsDeviceCompSPlot <- ggplot(df_fitts[df_fitts$HitType=='Hit',], aes(FittsID, DeltaTime, group = InputType, colour = InputType)) +
+        fittsDeviceCompSPlot <- ggplot(df_fitts[df_fitts$HitType=='Hit',], aes(FittsID, DeltaTime,  colour = InputType)) +
           geom_smooth(method = "lm", fill = NA) +
           ylab("movement time + confirmation in seconds") +
           xlab("ID") +
           theme_bw() +
           geom_point() +
-          stat_regline_equation(color = "black", aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~~"))) 
+          stat_regline_equation(aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~~"))) 
         print(fittsDeviceCompSPlot)
       })
       
