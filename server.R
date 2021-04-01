@@ -498,7 +498,7 @@ server <- function(input, output, session) {
           geom_smooth(method = "lm", fill = NA) +
           stat_regline_equation() +
           ylab("total movement time") +
-          xlab("aspect ratio ") +
+          xlab("tunnel aspect ratio (length/height)") +
           theme_bw() +
           geom_point() +
           facet_grid(cols = vars(InputResponders), rows = vars(InputType))
