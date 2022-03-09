@@ -120,7 +120,7 @@ server <- function(input, output, session) {
       df_tunnel$aspectRatio <<- df_tunnel$ObjectDistanceCm / df_tunnel$ObjectWidthCm
       df_fitts <<- df_all %>% filter(GameType == "Fitts" & is.na(CDGain))
       df_fitts <<- df_fitts[df_fitts$DeltaTime < 5, ]
-      df_fitts$FittsID <<- log2(2 * (df_fitts$ObjectDistanceCm+df_fitts$ObjectWidthCm) / df_fitts$ObjectWidthCm)
+      df_fitts$FittsID <<- log2(2 * (df_fitts$ObjectDistanceCm) / df_fitts$ObjectWidthCm)
       df_fittsAgg <<- df_fitts %>%
         filter(HitType=='Hit' & is.na(CDGain)) %>% 
         group_by(Email, PID, InputType, InputResponders, FittsID) %>%
