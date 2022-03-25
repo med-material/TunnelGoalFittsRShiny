@@ -109,16 +109,16 @@ server <- function(input, output, session) {
 
       # VARIABLES
       df_all <<- df_all %>% mutate(TargetNumber=as.numeric(TargetNumber),hitScore=ifelse(HitType=="Hit",1,0))
-      df_goal <<- df_all %>% filter(GameType == "Goal" & is.na(CDGain)) 
+      df_goal <<- df_all %>% filter(GameType == "Goal") 
       df_goal$FittsID <<- log2(2 * df_goal$ObjectDistanceCm / df_goal$ObjectHeightCm)
       df_goalAgg <<- df_goal %>%
         filter(is.na(CDGain)) %>%
         group_by(Email, PID, InputType, InputResponders, FittsID) %>%
         summarize(meanMT = mean(DeltaTime, na.rm = TRUE))
       # df_goalAggEnt<<-df_goalAgg %>% group_by(Email,PID, InputType, InputResponders) %>% summarize(total.count=n())
-      df_tunnel <<- df_all %>% filter(GameType == "Tunnel" & is.na(CDGain))
+      df_tunnel <<- df_all %>% filter(GameType == "Tunnel")
       df_tunnel$aspectRatio <<- df_tunnel$ObjectDistanceCm / df_tunnel$ObjectWidthCm
-      df_fitts <<- df_all %>% filter(GameType == "Fitts" & is.na(CDGain))
+      df_fitts <<- df_all %>% filter(GameType == "Fitts")
       df_fitts <<- df_fitts[df_fitts$DeltaTime < 5, ]
       df_fitts$FittsID <<- log2(2 * (df_fitts$ObjectDistanceCm) / df_fitts$ObjectWidthCm)
       df_fittsAgg <<- df_fitts %>%
