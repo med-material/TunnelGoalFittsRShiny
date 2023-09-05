@@ -265,6 +265,10 @@ server <- function(input, output, session) {
           )
       )
       output$goalLRPlot <- renderPlot({
+        req(!is.na(df_goal))
+        req(!is.null(df_goal))
+        graphreq = nrow(df_goal %>% distinct(InputResponders))
+        validate(need(graphreq > 1, paste("This goal graph needs data from at least two input responders. Only",nrow(df_goal %>% distinct(InputResponders)),"Available.")), errorClass = "vis")
         goalLRcompGG <- ggplot(df_goal, aes(FittsID, DeltaTime, colour = InputResponders)) +
           geom_smooth(method = "lm", fill = NA) +
           ylab("movement time in seconds") +
@@ -277,6 +281,11 @@ server <- function(input, output, session) {
       })
       
       output$goalLRSinglePlot <- renderPlot({
+        req(!is.na(df_goal))
+        req(!is.null(df_goal))
+        # graphreq: checks that the minimum data is needed to produce the 
+        graphreq = nrow(df_goal %>% distinct(InputResponders))
+        validate(need(graphreq > 1, paste("This goal graph needs data from at least two input responders. Only",graphreq,"Available.")), errorClass = "vis")
         goalLRSinglePlot <- ggplot(df_goal, aes(FittsID, DeltaTime, colour = InputResponders)) +
           geom_smooth(method = "lm", fill = NA) +
           ylab("movement time in seconds") +
@@ -288,6 +297,11 @@ server <- function(input, output, session) {
       })
       
       output$goalLRPressurePlot <- renderPlot({
+        req(!is.na(df_goal))
+        req(!is.null(df_goal))
+        # graphreq: checks that the minimum data is needed to produce the graph.
+        graphreq = nrow(df_goal %>% filter(InputType=="pressuresensor") %>% distinct(InputResponders))
+        validate(need(graphreq > 1, paste("This goal graph needs data from at least two input responders, both using the pressure sensor input type. Only",graphreq,"Available.")), errorClass = "vis")
         goalLRcompPress <- ggplot(df_goal[df_goal$InputType == "pressuresensor", ], aes(FittsID, DeltaTime, colour = InputResponders)) +
           geom_smooth(method = "lm", fill = NA) +
           ylab("movement time in seconds") +
@@ -300,6 +314,11 @@ server <- function(input, output, session) {
       })
 
       output$GoalDeviceComp <- renderPlot({
+        req(!is.na(df_goal))
+        req(!is.null(df_goal))
+        # graphreq: checks that the minimum data is needed to produce the graph.
+        graphreq = nrow(df_goal %>% filter(HitType=="Hit") %>% distinct(InputType))
+        validate(need(graphreq > 1, paste("This goal graph needs data from at least two input types (devices). Only",graphreq,"Available.")), errorClass = "vis")        
         GoalDeviceCompPlot <- ggplot(df_goal[df_goal$HitType=='Hit',], aes(FittsID, DeltaTime, group = InputType, colour = InputType)) +
           geom_smooth(method = "lm", fill = NA) +
           ylab("movement time") +
@@ -312,6 +331,11 @@ server <- function(input, output, session) {
       })
       
       output$GoalDeviceCompSPlot <- renderPlot({
+        req(!is.na(df_goal))
+        req(!is.null(df_goal))
+        # graphreq: checks that the minimum data is needed to produce the graph.
+        graphreq = nrow(df_goal %>% filter(HitType=="Hit") %>% distinct(InputType))
+        validate(need(graphreq > 1, paste("This goal graph needs data from at least two input types (devices). Only",graphreq,"Available.")), errorClass = "vis")        
         GoalDeviceCompSPlot <- ggplot(df_goal[df_goal$HitType=='Hit',], aes(FittsID, DeltaTime,  colour = InputType)) +
           geom_smooth(method = "lm", fill = NA) +
           ylab("movement time") +
@@ -384,6 +408,11 @@ server <- function(input, output, session) {
       my.formula <- y ~ x
       # FittsLRcomp <-
       output$fittsLRPlot <- renderPlot({
+        req(!is.na(df_fitts))
+        req(!is.null(df_fitts))
+        # graphreq: checks that the minimum data is needed to produce the graph.
+        graphreq = nrow(df_fitts %>% filter(HitType=="Hit") %>% distinct(InputResponders))
+        validate(need(graphreq > 1, paste("This fitts graph needs data from at least two input responders. Only",graphreq,"Available.")), errorClass = "vis")        
         FittsLRcompGG <- ggplot(df_fitts[df_fitts$HitType=='Hit',], aes(FittsID, DeltaTime, colour = InputResponders)) +
           geom_smooth(method = "lm", fill = NA) +
           ylab("movement time + confirmation in seconds") +
@@ -396,6 +425,11 @@ server <- function(input, output, session) {
       })
       
       output$fittsLRSinglePlot <- renderPlot({
+        req(!is.na(df_fitts))
+        req(!is.null(df_fitts))
+        # graphreq: checks that the minimum data is needed to produce the graph.
+        graphreq = nrow(df_fitts %>% filter(HitType=="Hit") %>% distinct(InputResponders))
+        validate(need(graphreq > 1, paste("This fitts graph needs data from at least two input responders. Only",graphreq,"Available.")), errorClass = "vis")        
         fittsLRSinglePlot <- ggplot(df_fitts[df_fitts$HitType=='Hit',], aes(FittsID, DeltaTime, group =InputResponders, colour = InputResponders)) +
           geom_smooth(method = "lm", fill = NA) +
           ylab("movement time + confirmation in seconds") +
@@ -409,6 +443,11 @@ server <- function(input, output, session) {
       # renderPlotly(ggplotly(p = FittsLRcomp) %>%
       #                                   config(scrollZoom = TRUE))
       output$fittsLRPlotPressure <- renderPlot({
+        req(!is.na(df_fitts))
+        req(!is.null(df_fitts))
+        # graphreq: checks that the minimum data is needed to produce the graph.
+        graphreq = nrow(df_fitts  %>% filter(InputType=="pressuresensor", HitType=="Hit") %>% distinct(InputResponders))
+        validate(need(graphreq > 1, paste("This fitts graph needs data from the pressure sensor with at least two input responders. Only",graphreq,"Available.")), errorClass = "vis")        
         FittsLRcompPress <- ggplot(df_fitts[df_fitts$InputType == "pressuresensor" & df_fitts$HitType=='Hit', ], aes(FittsID, DeltaTime, colour = InputResponders)) +
           geom_smooth(method = "lm", fill = NA) +
           ylab("movement time + confirmation in seconds") +
@@ -421,6 +460,11 @@ server <- function(input, output, session) {
       })
 
       output$fittsDeviceComp <- renderPlot({
+        req(!is.na(df_fitts))
+        req(!is.null(df_fitts))
+        # graphreq: checks that the minimum data is needed to produce the graph.
+        graphreq = nrow(df_fitts %>% filter(HitType=="Hit") %>% distinct(InputType))
+        validate(need(graphreq > 1, paste("This fitts graph needs data from at least two input types (devices). Only",graphreq,"Available.")), errorClass = "vis")        
         fittsDeviceCompPlot <- ggplot(df_fitts[df_fitts$HitType=='Hit',], aes(FittsID, DeltaTime, colour = InputType)) +
           geom_smooth(method = "lm", fill = NA) +
           ylab("movement time + confirmation in seconds") +
@@ -433,6 +477,11 @@ server <- function(input, output, session) {
       })
 
       output$fittsDeviceCompSPlot <- renderPlot({
+        req(!is.na(df_fitts))
+        req(!is.null(df_fitts))
+        # graphreq: checks that the minimum data is needed to produce the graph.
+        graphreq = nrow(df_fitts %>% filter(HitType=="Hit") %>% distinct(InputType))
+        validate(need(graphreq > 1, paste("This fitts graph needs data from at least two input types (devices). Only",graphreq,"Available.")), errorClass = "vis")        
         fittsDeviceCompSPlot <- ggplot(df_fitts[df_fitts$HitType=='Hit',], aes(FittsID, DeltaTime,  colour = InputType)) +
           geom_smooth(method = "lm", fill = NA) +
           ylab("movement time + confirmation in seconds") +
@@ -494,6 +543,11 @@ server <- function(input, output, session) {
           )
       )
       output$tunnelLRPlot <- renderPlot({
+        req(!is.na(df_tunnel))
+        req(!is.null(df_tunnel))
+        # graphreq: checks that the minimum data is needed to produce the graph.
+        graphreq = nrow(df_tunnel %>% filter(HitType=="Hit") %>% distinct(InputResponders))
+        validate(need(graphreq > 1, paste("This tunnel graph needs data from at least two input responders. Only",graphreq,"Available.")), errorClass = "vis")        
         TunnelLRcompGG <- ggplot(df_tunnel[df_tunnel$HitType=='Hit',], aes(aspectRatio, DeltaTime, colour = InputResponders)) +
           geom_smooth(method = "lm", fill = NA) +
           stat_regline_equation() +
@@ -506,6 +560,11 @@ server <- function(input, output, session) {
       })
 
       output$TunnelLRPlotPressure <- renderPlot({
+        req(!is.na(df_tunnel))
+        req(!is.null(df_tunnel))
+        # graphreq: checks that the minimum data is needed to produce the graph.
+        graphreq = nrow(df_tunnel %>% filter(InputType=="pressuresensor",HitType=="Hit") %>% distinct(InputResponders))
+        validate(need(graphreq > 1, paste("This tunnel graph needs data from the pressure sensor with at least two input responders. Only",graphreq,"Available.")), errorClass = "vis")        
         TunnelLRcompPress <- ggplot(df_tunnel[df_tunnel$InputType == "pressuresensor" & df_tunnel$HitType=='Hit', ], aes(aspectRatio, DeltaTime, colour = InputResponders)) +
           geom_smooth(method = "lm", fill = NA) +
           stat_regline_equation() +
