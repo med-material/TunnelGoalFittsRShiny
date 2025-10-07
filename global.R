@@ -4,7 +4,8 @@ library(ggplot2)
 
 
 my_data <- read.csv("credentials.csv", header = TRUE, sep = ",", colClasses = c("character", "character", "character", "character"))
-
+source("modules/csv_upload_module.R", local = T)
+options(shiny.maxRequestSize=100*1024^2)
 lapply(dbListConnections(dbDriver(drv = "MySQL")), dbDisconnect)
 
 
@@ -58,6 +59,10 @@ RefreshDataSets <- function(colfilter) {
     # -1 is the default value R Shiny uses on startup.
     return()
   }
+  if (local_data) {
+    # -1 is the default value R Shiny uses on startup.
+    return()
+  }
   # REFRESH REACTION TIME DATASET
   df_all <<- RetreiveDataSet("tunnel_fit_test", "Email", colfilter)
   df_all$GameType <<- as.factor(df_all$GameType)
@@ -66,5 +71,14 @@ RefreshDataSets <- function(colfilter) {
   df_all$TrialNo <<- as.factor(df_all$TrialNo)
 }
 
+RefreshDataLocal <- function() {
+  # REFRESH REACTION TIME DATASET
+  df_all$GameType <<- as.factor(df_all$GameType)
+  df_all$GameType <<- factor(df_all$GameType, levels = c("Goal", "Fitts", "Tunnel"))
+  df_all$PID <<- as.factor(df_all$PID)
+  df_all$TrialNo <<- as.factor(df_all$TrialNo)
+  local_data <<- T
+}
 
+local_data = F
 df_all <- data.frame()

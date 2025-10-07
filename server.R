@@ -18,6 +18,8 @@ server <- function(input, output, session) {
   colorPalette <- c("#c94232", "#239a37")
   all_accounts <- RetreiveUniqueColVals("tunnel_fit_test", "Email")
 
+  csv_data <- callModule(csv_upload, "uploadData")
+  
   # a variable we use, if we filter based on pid.
   pid_index <- NULL
   pid_name <- NULL
@@ -29,6 +31,23 @@ server <- function(input, output, session) {
   participants <- NULL
   choices <- NULL
 
+  observeEvent(input$CsvButton, {
+    insertUI(selector = "#CsvButton", where = "afterEnd",
+             ui = showModal(modalDialog(csv_upload_UI("uploadData"), easyClose = TRUE)))
+  })
+  
+  observeEvent(csv_data$trigger, {
+    req(csv_data$trigger > 0)
+    if (!is.null(csv_data$df)) {
+      df_all <<- csv_data$df
+    }
+    RefreshDataLocal()
+    user_id = df_all$Email
+    new_pid = df_all$PID
+    updateSelectInput(session, "emailSelect", choices = user_id, selected = user_id[1])
+    updateTabsetPanel(session, "subjectChooser", selected = new_pid[1])
+  })
+  
   observe({
     query <- parseQueryString(session$clientData$url_search)
     # Change E-mail dropdown based on the ?email=XXX URL parameter
@@ -106,7 +125,6 @@ server <- function(input, output, session) {
         return()
       }
       RefreshDataSets(input$emailSelect)
-
       # VARIABLES
       df_all <<- df_all %>% mutate(TargetNumber=as.numeric(TargetNumber),hitScore=ifelse(HitType=="Hit",1,0))
       df_goal <<- df_all %>% filter(GameType == "Goal") 
