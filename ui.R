@@ -14,7 +14,7 @@ ui <- fluidPage(
       column(11,
         style = "margin-top : 20px; text-align: center;",
         actionButton("CsvButton","Upload CSV"),
-        selectInput("emailSelect", NULL, choices = c("Loading.." = -1))
+        selectInput("emailSelect", NULL, choices = c("Press Upload CSV to Upload Data." = -1))
       )
     )
   ),
