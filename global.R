@@ -54,7 +54,7 @@ RetreiveDataSet <- function(tablename, column, colvalue) {
 # Setting colfilter to NULL retreives all data.
 # USAGE:
 # RefreshDataSets("mhel@create.aau.dk")
-RefreshDataSets <- function(colfilter) {
+RefreshDataSets <- function(colfilter, local_data) {
   if (colfilter == "-1") {
     # -1 is the default value R Shiny uses on startup.
     return()
@@ -71,14 +71,12 @@ RefreshDataSets <- function(colfilter) {
   df_all$TrialNo <<- as.factor(df_all$TrialNo)
 }
 
-RefreshDataLocal <- function() {
+RefreshDataLocal <- function(df) {
   # REFRESH REACTION TIME DATASET
-  df_all$GameType <<- as.factor(df_all$GameType)
-  df_all$GameType <<- factor(df_all$GameType, levels = c("Goal", "Fitts", "Tunnel"))
-  df_all$PID <<- as.factor(df_all$PID)
-  df_all$TrialNo <<- as.factor(df_all$TrialNo)
-  local_data <<- T
+  df$GameType <- as.factor(df$GameType)
+  df$GameType <- factor(df$GameType, levels = c("Goal", "Fitts", "Tunnel"))
+  df$PID <- as.factor(df$PID)
+  df$TrialNo <- as.factor(df$TrialNo)
+  return(df)
 }
 
-local_data = F
-df_all <- data.frame()

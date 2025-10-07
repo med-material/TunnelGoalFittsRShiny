@@ -8,28 +8,38 @@ library(ggpubr)
 
 server <- function(input, output, session) {
 
+  #local_data = F
+  #df_all <- data.frame()
   # VARIABLES
-  df_goal <- NULL
-  df_tunnel <- NULL
-  df_fitts <- NULL
-  df_DHR <- NULL
+  r <- reactiveValues(df_all = NULL,
+                      local_data = T,
+                      df_goal = NULL,
+                      df_tunnel = NULL,
+                      df_fitts = NULL,
+                      df_DHR = NULL,
+                      pid_index = NULL,
+                      pid_name = NULL,
+                      pid_email = NULL,
+                      pid_query = NULL,
+                      subject = "Goal", # tunnel, fitts
+                      participants = NULL,
+                      choices = NULL
+                      )
+
+
   
   # define colors to use in plots.
   colorPalette <- c("#c94232", "#239a37")
   all_accounts <- RetreiveUniqueColVals("tunnel_fit_test", "Email")
-
   csv_data <- callModule(csv_upload, "uploadData")
   
   # a variable we use, if we filter based on pid.
-  pid_index <- NULL
-  pid_name <- NULL
-  pid_email <- NULL
-  pid_query <- NULL
-  subject <- "Goal" # tunnel, fitts
+  
+  
+
 
   # a variable we use to keep track of the currently available participants
-  participants <- NULL
-  choices <- NULL
+
 
   observeEvent(input$CsvButton, {
     insertUI(selector = "#CsvButton", where = "afterEnd",
@@ -39,13 +49,13 @@ server <- function(input, output, session) {
   observeEvent(csv_data$trigger, {
     req(csv_data$trigger > 0)
     if (!is.null(csv_data$df)) {
-      df_all <<- csv_data$df
+      r$df_all = RefreshDataLocal(csv_data$df)
+      r$local_data = T
+      user_id = r$df_all$Email
+      new_pid = r$df_all$PID
+      updateSelectInput(session, "emailSelect", choices = user_id, selected = user_id[1])
+      updateTabsetPanel(session, "subjectChooser", selected = new_pid[1])
     }
-    RefreshDataLocal()
-    user_id = df_all$Email
-    new_pid = df_all$PID
-    updateSelectInput(session, "emailSelect", choices = user_id, selected = user_id[1])
-    updateTabsetPanel(session, "subjectChooser", selected = new_pid[1])
   })
   
   observe({
@@ -54,13 +64,13 @@ server <- function(input, output, session) {
     # Filter visualizations based on the ?pid=XXX URL parameter (based on the tab's value attribute)
     # Change Tab based on the ?subject=XXX URL parameter (based on the tab's value attribute)
     if (!is.null(query[["subject"]])) {
-      subject <<- query[["subject"]]
-      updateTabsetPanel(session, "subjectChooser", selected = subject)
+      r$subject <- query[["subject"]]
+      updateTabsetPanel(session, "subjectChooser", selected = r$subject)
     }
     if (!is.null(query[["pid"]])) {
       pid <- query[["pid"]]
-      pid_query <<- pid
-      pid_name <<- pid
+      r$pid_query <- pid
+      r$pid_name <- pid
     }
     if (!is.null(query[["email"]])) {
       sel <- query[["email"]]
@@ -76,8 +86,8 @@ server <- function(input, output, session) {
       input$subjectChooser
     },
     {
-      if (input$subjectChooser != subject) {
-        subject <<- input$subjectChooser
+      if (input$subjectChooser != r$subject) {
+        r$subject <- input$subjectChooser
         UpdatePIDSelection()
         UpdateVisualizations()
       }
@@ -92,27 +102,27 @@ server <- function(input, output, session) {
     {
       print(paste("email: ", input$emailSelect))
       # prevent infinite loop - only update pid_name to null, if the value is not already null.
-      if (is.null(pid_name) & is.null(input$pidChooser)) {
-        print(paste("pidChooser: pid_index ", pid_index))
-        print(paste("pidChooser: pid_name ", pid_name))
+      if (is.null(r$pid_name) & is.null(input$pidChooser)) {
+        print(paste("pidChooser: pid_index ", r$pid_index))
+        print(paste("pidChooser: pid_name ", r$pid_name))
         print("ignored..")
         return()
       }
       # CheckboxInputGroup sends an initial NULL value which overrides any query values.
       # Make sure we check whether a specific PID was specified as URL param before.
-      if (!is.null(pid_query)) {
+      if (!is.null(r$pid_query)) {
         print("pid_query exists, ignoring pidChooser")
       } else if (!is.null(input$pidChooser)) {
-        pid_index <<- input$pidChooser
-        pid_name <<- unlist(participants[input$pidChooser, "PID"])
-        pid_email <<- unlist(participants[input$pidChooser, "Email"])
+        r$pid_index <- input$pidChooser
+        r$pid_name <- unlist(r$participants[input$pidChooser, "PID"])
+        r$pid_email <- unlist(r$participants[input$pidChooser, "Email"])
       } else {
-        pid_index <<- NULL
-        pid_name <<- NULL
-        pid_email <<- NULL
+        r$pid_index <- NULL
+        r$pid_name <- NULL
+        r$pid_email <- NULL
       }
-      print(paste("pidChooser: pid_index ", pid_index))
-      print(paste("pidChooser: pid_name ", pid_name))
+      print(paste("pidChooser: pid_index ", r$pid_index))
+      print(paste("pidChooser: pid_name ", r$pid_name))
       UpdateVisualizations()
     }
   )
@@ -121,31 +131,31 @@ server <- function(input, output, session) {
       input$emailSelect
     },
     {
-      if (input$emailSelect == "-1") {
+      if (input$emailSelect %in% c("-1","NA")) {
         return()
       }
-      RefreshDataSets(input$emailSelect)
+      RefreshDataSets(input$emailSelect, r$local_data)
       # VARIABLES
-      df_all <<- df_all %>% mutate(TargetNumber=as.numeric(TargetNumber),hitScore=ifelse(HitType=="Hit",1,0))
-      df_goal <<- df_all %>% filter(GameType == "Goal") 
-      df_goal$FittsID <<- log2(2 * df_goal$ObjectDistanceCm / df_goal$ObjectHeightCm)
-      df_goalAgg <<- df_goal %>%
+      r$df_all <- r$df_all %>% mutate(TargetNumber=as.numeric(TargetNumber),hitScore=ifelse(HitType=="Hit",1,0))
+      r$df_goal <- r$df_all %>% filter(GameType == "Goal") 
+      r$df_goal$FittsID <- log2(2 * r$df_goal$ObjectDistanceCm / r$df_goal$ObjectHeightCm)
+      r$df_goalAgg <- r$df_goal %>%
         filter(is.na(CDGain)) %>%
         group_by(Email, PID, InputType, InputResponders, FittsID) %>%
         summarize(meanMT = mean(DeltaTime, na.rm = TRUE))
       # df_goalAggEnt<<-df_goalAgg %>% group_by(Email,PID, InputType, InputResponders) %>% summarize(total.count=n())
-      df_tunnel <<- df_all %>% filter(GameType == "Tunnel")
-      df_tunnel$aspectRatio <<- df_tunnel$ObjectDistanceCm / df_tunnel$ObjectWidthCm
-      df_fitts <<- df_all %>% filter(GameType == "Fitts")
-      df_fitts <<- df_fitts[df_fitts$DeltaTime < 5, ]
-      df_fitts$FittsID <<- log2(2 * (df_fitts$ObjectDistanceCm) / df_fitts$ObjectWidthCm)
-      df_fittsAgg <<- df_fitts %>%
+      r$df_tunnel <- r$df_all %>% filter(GameType == "Tunnel")
+      r$df_tunnel$aspectRatio <- r$df_tunnel$ObjectDistanceCm / r$df_tunnel$ObjectWidthCm
+      r$df_fitts <- r$df_all %>% filter(GameType == "Fitts")
+      r$df_fitts <- r$df_fitts[r$df_fitts$DeltaTime < 5, ]
+      r$df_fitts$FittsID <- log2(2 * (r$df_fitts$ObjectDistanceCm) / r$df_fitts$ObjectWidthCm)
+      r$df_fittsAgg <- r$df_fitts %>%
         filter(HitType=='Hit' & is.na(CDGain)) %>% 
         group_by(Email, PID, InputType, InputResponders, FittsID) %>%
         summarize(meanMT = mean(DeltaTime, na.rm = TRUE))
-      df_DHR <<- df_all %>% filter(GameType == "Fitts" & !is.na(CDGain)) %>% mutate(FittsID=log2(2 * (ObjectDistanceCm+ObjectWidthCm) / ObjectWidthCm))
+      r$df_DHR <- r$df_all %>% filter(GameType == "Fitts" & !is.na(CDGain)) %>% mutate(FittsID=log2(2 * (ObjectDistanceCm+ObjectWidthCm) / ObjectWidthCm))
       # df_fittsAggEnt<<-df_fittsAgg %>% group_by(Email,PID, InputType, InputResponders) %>% summarize(total.count=n())
-      df_DHRagg <<- df_DHR %>% dplyr::group_by(Email,PID, InputType, InputResponders, FittsID, CDGain,ObjectWidthCm) %>% summarize(MTmean=mean(DeltaTime),errorRate=1-mean(hitScore))
+      r$df_DHRagg <- r$df_DHR %>% dplyr::group_by(Email,PID, InputType, InputResponders, FittsID, CDGain,ObjectWidthCm) %>% summarize(MTmean=mean(DeltaTime),errorRate=1-mean(hitScore))
       UpdatePIDSelection()
 
       UpdateVisualizations()
@@ -157,59 +167,59 @@ server <- function(input, output, session) {
   # update PID selection --------
   UpdatePIDSelection <- function() {
     # Update PID Choosers to show PID numbers based on the data
-    if (subject == "Goal") {
-      participants <<- unique(df_goal %>% group_by(Email) %>% distinct(PID))
-      participants$PID[is.na(participants$PID)] <<- "NA"
-      if (nrow(participants) > 0) {
-        choices <<- setNames(c(1:nrow(participants)), participants$PID)
+    if (r$subject == "Goal") {
+      r$participants <- unique(r$df_goal %>% group_by(Email) %>% distinct(PID))
+      r$participants$PID[is.na(r$participants$PID)] <- "NA"
+      if (nrow(r$participants) > 0) {
+        r$choices <- setNames(c(1:nrow(r$participants)), r$participants$PID)
       } else {
-        choices <<- NULL
+        r$choices <- NULL
       }
-    } else if (subject == "Fitts") {
-      participants <<- unique(df_fitts %>% group_by(Email) %>% distinct(PID))
-      participants$PID[is.na(participants$PID)] <<- "NA"
-      if (nrow(participants) > 0) {
-        choices <<- setNames(c(1:nrow(participants)), participants$PID)
+    } else if (r$subject == "Fitts") {
+      r$participants <- unique(r$df_fitts %>% group_by(Email) %>% distinct(PID))
+      r$participants$PID[is.na(r$participants$PID)] <- "NA"
+      if (nrow(r$participants) > 0) {
+        r$choices <- setNames(c(1:nrow(r$participants)), r$participants$PID)
       } else {
-        choices <<- NULL
+        r$choices <- NULL
       }
-    } else if (subject == "Tunnel") {
-      participants <<- unique(df_tunnel %>% group_by(Email) %>% distinct(PID))
-      participants$PID[is.na(participants$PID)] <<- "NA"
-      if (nrow(participants) > 0) {
-        choices <<- setNames(c(1:nrow(participants)), participants$PID)
+    } else if (r$subject == "Tunnel") {
+      r$participants <- unique(r$df_tunnel %>% group_by(Email) %>% distinct(PID))
+      r$participants$PID[is.na(r$participants$PID)] <- "NA"
+      if (nrow(r$participants) > 0) {
+        r$choices <- setNames(c(1:nrow(r$participants)), r$participants$PID)
       } else {
-        choices <<- NULL
+        r$choices <- NULL
       }
-    } else if (subject == "DHR") {
-      participants <<- unique(df_DHR %>% group_by(Email) %>% distinct(PID))
-      participants$PID[is.na(participants$PID)] <<- "NA"
-      if (nrow(participants) > 0) {
-        choices <<- setNames(c(1:nrow(participants)), participants$PID)
+    } else if (r$subject == "DHR") {
+      r$participants <- unique(r$df_DHR %>% group_by(Email) %>% distinct(PID))
+      r$participants$PID[is.na(r$participants$PID)] <- "NA"
+      if (nrow(r$participants) > 0) {
+        r$choices <- setNames(c(1:nrow(r$participants)), r$participants$PID)
       } else {
-        choices <<- NULL
+        r$choices <- NULL
       }
     }
     
-    if (!is.null(pid_query)) {
-      pid_name <<- pid_query
-      pid_query <<- NULL
-      pid_index <<- unname(choices[names(choices) == pid_name])
+    if (!is.null(r$pid_query)) {
+      r$pid_name <- r$pid_query
+      r$pid_query <- NULL
+      r$pid_index <- unname(r$choices[names(r$choices) == r$pid_name])
       print(paste("PIDQuery: e-mail", input$emailSelect))
-      print(paste("PIDQuery: pid_name", pid_name))
-      print(paste("PIDQuery: pid_index", pid_index))
+      print(paste("PIDQuery: pid_name", r$pid_name))
+      print(paste("PIDQuery: pid_index", r$pid_index))
     }
-    print(choices)
-    print(nrow(participants))
-    if (is.null(choices)) {
+    print(r$choices)
+    print(nrow(r$participants))
+    if (is.null(r$choices)) {
       updateCheckboxGroupInput(session, label = "No Participant Data", "pidChooser", choices = NULL, selected = NULL, inline = TRUE)
     }
-    else if (is.null(pid_index)) {
+    else if (is.null(r$pid_index)) {
       print("UpdateCheckbox: pid is null")
-      updateCheckboxGroupInput(session, label = "Filter by Participant:", "pidChooser", choices = choices, selected = NULL, inline = TRUE)
+      updateCheckboxGroupInput(session, label = "Filter by Participant:", "pidChooser", choices = r$choices, selected = NULL, inline = TRUE)
     } else {
-      print(paste("UpdateCheckbox: ", pid_index))
-      updateCheckboxGroupInput(session, label = "Filter by Participant:", "pidChooser", choices = choices, selected = pid_index, inline = TRUE)
+      print(paste("UpdateCheckbox: ", r$pid_index))
+      updateCheckboxGroupInput(session, label = "Filter by Participant:", "pidChooser", choices = r$choices, selected = r$pid_index, inline = TRUE)
     }
   }
 
@@ -217,41 +227,41 @@ server <- function(input, output, session) {
     if (input$emailSelect == "-1") {
       return()
     }
-    print(paste("UpdateVis pid: ", pid_name))
-    print(paste("UpdateVis subject: ", subject))
-    print(paste("UpdateVis subject==Fitts: ", subject == "Fitts"))
-    print(paste("df_all nrow:", nrow(df_all)))
-    print(paste("df_goal nrow:", nrow(df_goal)))
+    print(paste("UpdateVis pid: ", r$pid_name))
+    print(paste("UpdateVis subject: ", r$subject))
+    print(paste("UpdateVis subject==Fitts: ", r$subject == "Fitts"))
+    print(paste("df_all nrow:", nrow(r$df_all)))
+    print(paste("df_goal nrow:", nrow(r$df_goal)))
     # Filter visualization data based on pid_name
-    if (!is.null(pid_name)) {
-      df_all <- df_all %>%
+    if (!is.null(r$pid_name)) {
+      r$df_all <- r$df_all %>%
         filter(Email %in% pid_email) %>%
-        filter(PID %in% pid_name)
-      df_goal <- df_goal %>%
+        filter(PID %in% r$pid_name)
+      r$df_goal <- r$df_goal %>%
         filter(Email %in% pid_email) %>%
-        filter(PID %in% pid_name)
-      df_tunnel <- df_tunnel %>%
+        filter(PID %in% r$pid_name)
+      r$df_tunnel <- r$df_tunnel %>%
         filter(Email %in% pid_email) %>%
-        filter(PID %in% pid_name)
-      df_fitts <- df_fitts %>%
+        filter(PID %in% r$pid_name)
+      r$df_fitts <- r$df_fitts %>%
         filter(Email %in% pid_email) %>%
-        filter(PID %in% pid_name) 
-      df_DHR<-df_DHR %>%
+        filter(PID %in% r$pid_name) 
+      r$df_DHR<-r$df_DHR %>%
         filter(Email %in% pid_email) %>%
-        filter(PID %in% pid_name) %>%
+        filter(PID %in% r$pid_name) %>%
         filter(!is.na(CDGain)) 
       df_DHRagg<-df_DHRagg %>%
         filter(Email %in% pid_email) %>%
-        filter(PID %in% pid_name) %>%
+        filter(PID %in% r$pid_name) %>%
         filter(!is.na(CDGain)) 
     }
-    if (subject == "Goal") {
-      print(paste("df_goal filtered nrow:", nrow(df_goal)))
-      output$goalHitType <- renderText(paste(length(df_goal$ID[df_goal$HitType == "Hit"]), " Successful Hits", sep = " "))
-      output$goalWrongHits <- renderText(paste(length(df_goal$ID[df_goal$HitType == "Miss"]), " Errors", sep = " "))
-      output$goalAverage <- renderText(paste("Average time : ", format(mean(df_goal$DeltaTime)), sep = " "))
-      output$goalType <- renderText(paste("Input Type :", unique(df_goal$InputType), sep = " "))
-      output$goalRespond <- renderText(paste("Input Responder :", unique(df_goal$InputResponder), sep = " "))
+    if (r$subject == "Goal") {
+      print(paste("df_goal filtered nrow:", nrow(r$df_goal)))
+      output$goalHitType <- renderText(paste(length(r$df_goal$ID[r$df_goal$HitType == "Hit"]), " Successful Hits", sep = " "))
+      output$goalWrongHits <- renderText(paste(length(r$df_goal$ID[r$df_goal$HitType == "Miss"]), " Errors", sep = " "))
+      output$goalAverage <- renderText(paste("Average time : ", format(mean(r$df_goal$DeltaTime)), sep = " "))
+      output$goalType <- renderText(paste("Input Type :", unique(r$df_goal$InputType), sep = " "))
+      output$goalRespond <- renderText(paste("Input Responder :", unique(r$df_goal$InputResponder), sep = " "))
 
       output$goalTestDetails <- renderPlotly(
         plot_ly(
@@ -259,7 +269,7 @@ server <- function(input, output, session) {
           mode = "markers",
           # color = var3 ,
           # colors = pal,
-          data = df_goal, x = ~TargetNumber, y = ~DeltaTime
+          data = r$df_goal, x = ~TargetNumber, y = ~DeltaTime
         ) %>%
 
           layout(
@@ -273,7 +283,7 @@ server <- function(input, output, session) {
         plot_ly(
           type = "scatter",
           mode = "markers",
-          color = df_goal$InputType
+          color = r$df_goal$InputType
           # colors = pal,
         ) %>%
           layout(
@@ -283,11 +293,11 @@ server <- function(input, output, session) {
           )
       )
       output$goalLRPlot <- renderPlot({
-        req(!is.na(df_goal))
-        req(!is.null(df_goal))
-        graphreq = nrow(df_goal %>% distinct(InputResponders))
-        validate(need(graphreq > 1, paste("This goal graph needs data from at least two input responders. Only",nrow(df_goal %>% distinct(InputResponders)),"Available.")), errorClass = "vis")
-        goalLRcompGG <- ggplot(df_goal, aes(FittsID, DeltaTime, colour = InputResponders)) +
+        req(!is.na(r$df_goal))
+        req(!is.null(r$df_goal))
+        graphreq = nrow(r$df_goal %>% distinct(InputResponders))
+        validate(need(graphreq > 1, paste("This goal graph needs data from at least two input responders. Only",nrow(r$df_goal %>% distinct(InputResponders)),"Available.")), errorClass = "vis")
+        goalLRcompGG <- ggplot(r$df_goal, aes(FittsID, DeltaTime, colour = InputResponders)) +
           geom_smooth(method = "lm", fill = NA) +
           ylab("movement time in seconds") +
           xlab("ID") +
@@ -299,12 +309,12 @@ server <- function(input, output, session) {
       })
       
       output$goalLRSinglePlot <- renderPlot({
-        req(!is.na(df_goal))
-        req(!is.null(df_goal))
+        req(!is.na(r$df_goal))
+        req(!is.null(r$df_goal))
         # graphreq: checks that the minimum data is needed to produce the 
-        graphreq = nrow(df_goal %>% distinct(InputResponders))
+        graphreq = nrow(r$df_goal %>% distinct(InputResponders))
         validate(need(graphreq > 1, paste("This goal graph needs data from at least two input responders. Only",graphreq,"Available.")), errorClass = "vis")
-        goalLRSinglePlot <- ggplot(df_goal, aes(FittsID, DeltaTime, colour = InputResponders)) +
+        goalLRSinglePlot <- ggplot(r$df_goal, aes(FittsID, DeltaTime, colour = InputResponders)) +
           geom_smooth(method = "lm", fill = NA) +
           ylab("movement time in seconds") +
           xlab("ID") +
@@ -315,12 +325,12 @@ server <- function(input, output, session) {
       })
       
       output$goalLRPressurePlot <- renderPlot({
-        req(!is.na(df_goal))
-        req(!is.null(df_goal))
+        req(!is.na(r$df_goal))
+        req(!is.null(r$df_goal))
         # graphreq: checks that the minimum data is needed to produce the graph.
-        graphreq = nrow(df_goal %>% filter(InputType=="pressuresensor") %>% distinct(InputResponders))
+        graphreq = nrow(r$df_goal %>% filter(InputType=="pressuresensor") %>% distinct(InputResponders))
         validate(need(graphreq > 1, paste("This goal graph needs data from at least two input responders, both using the pressure sensor input type. Only",graphreq,"Available.")), errorClass = "vis")
-        goalLRcompPress <- ggplot(df_goal[df_goal$InputType == "pressuresensor", ], aes(FittsID, DeltaTime, colour = InputResponders)) +
+        goalLRcompPress <- ggplot(r$df_goal[r$df_goal$InputType == "pressuresensor", ], aes(FittsID, DeltaTime, colour = InputResponders)) +
           geom_smooth(method = "lm", fill = NA) +
           ylab("movement time in seconds") +
           xlab("ID") +
@@ -332,12 +342,12 @@ server <- function(input, output, session) {
       })
 
       output$GoalDeviceComp <- renderPlot({
-        req(!is.na(df_goal))
-        req(!is.null(df_goal))
+        req(!is.na(r$df_goal))
+        req(!is.null(r$df_goal))
         # graphreq: checks that the minimum data is needed to produce the graph.
-        graphreq = nrow(df_goal %>% filter(HitType=="Hit") %>% distinct(InputType))
+        graphreq = nrow(r$df_goal %>% filter(HitType=="Hit") %>% distinct(InputType))
         validate(need(graphreq > 1, paste("This goal graph needs data from at least two input types (devices). Only",graphreq,"Available.")), errorClass = "vis")        
-        GoalDeviceCompPlot <- ggplot(df_goal[df_goal$HitType=='Hit',], aes(FittsID, DeltaTime, group = InputType, colour = InputType)) +
+        GoalDeviceCompPlot <- ggplot(r$df_goal[r$df_goal$HitType=='Hit',], aes(FittsID, DeltaTime, group = InputType, colour = InputType)) +
           geom_smooth(method = "lm", fill = NA) +
           ylab("movement time") +
           xlab("ID") +
@@ -349,12 +359,12 @@ server <- function(input, output, session) {
       })
       
       output$GoalDeviceCompSPlot <- renderPlot({
-        req(!is.na(df_goal))
-        req(!is.null(df_goal))
+        req(!is.na(r$df_goal))
+        req(!is.null(r$df_goal))
         # graphreq: checks that the minimum data is needed to produce the graph.
-        graphreq = nrow(df_goal %>% filter(HitType=="Hit") %>% distinct(InputType))
+        graphreq = nrow(r$df_goal %>% filter(HitType=="Hit") %>% distinct(InputType))
         validate(need(graphreq > 1, paste("This goal graph needs data from at least two input types (devices). Only",graphreq,"Available.")), errorClass = "vis")        
-        GoalDeviceCompSPlot <- ggplot(df_goal[df_goal$HitType=='Hit',], aes(FittsID, DeltaTime,  colour = InputType)) +
+        GoalDeviceCompSPlot <- ggplot(r$df_goal[r$df_goal$HitType=='Hit',], aes(FittsID, DeltaTime,  colour = InputType)) +
           geom_smooth(method = "lm", fill = NA) +
           ylab("movement time") +
           xlab("ID") +
@@ -368,7 +378,7 @@ server <- function(input, output, session) {
       # print(GoalDeviceCompAggPlot)})
 
       output$GoalDeviceCompAgg <- renderPlot({
-        GoalDeviceCompAggPlot <- ggplot(df_goalAgg, aes(FittsID, meanMT, colour = InputResponders)) +
+        GoalDeviceCompAggPlot <- ggplot(r$df_goalAgg, aes(FittsID, meanMT, colour = InputResponders)) +
           geom_smooth(method = "lm", fill = NA) +
           ylab("movement time + confirmation in seconds") +
           xlab("ID") +
@@ -378,13 +388,13 @@ server <- function(input, output, session) {
           facet_grid(cols = vars(InputResponders), rows = vars(InputType))
         print(GoalDeviceCompAggPlot)
       })
-    } else if (subject == "Fitts") {
-      print(paste("df_fitts filtered nrow:", nrow(df_fitts)))
-      output$fittsHitType <- renderText(paste(length(df_fitts$ID[df_fitts$HitType == "Hit"]), " Successful Hits", sep = " "))
-      output$fittsWrongHits <- renderText(paste(length(df_fitts$ID[df_fitts$HitType == "Miss"]), " Errors", sep = " "))
-      output$fittsAverage <- renderText(paste("Average time : ", format(mean(df_fitts$DeltaTime)), sep = " "))
-      output$fittsType <- renderText(paste("Input Type :", unique(df_fitts$InputType), sep = " "))
-      output$fittsRespond <- renderText(paste("Input Responder :", unique(df_fitts$InputResponder), sep = " "))
+    } else if (r$subject == "Fitts") {
+      print(paste("df_fitts filtered nrow:", nrow(r$df_fitts)))
+      output$fittsHitType <- renderText(paste(length(r$df_fitts$ID[r$df_fitts$HitType == "Hit"]), " Successful Hits", sep = " "))
+      output$fittsWrongHits <- renderText(paste(length(r$df_fitts$ID[r$df_fitts$HitType == "Miss"]), " Errors", sep = " "))
+      output$fittsAverage <- renderText(paste("Average time : ", format(mean(r$df_fitts$DeltaTime)), sep = " "))
+      output$fittsType <- renderText(paste("Input Type :", unique(r$df_fitts$InputType), sep = " "))
+      output$fittsRespond <- renderText(paste("Input Responder :", unique(r$df_fitts$InputResponder), sep = " "))
 
       output$fittsTestDetails <- renderPlotly(
         plot_ly(
@@ -392,7 +402,7 @@ server <- function(input, output, session) {
           mode = "markers",
           # color = var3 ,
           # colors = pal,
-          data = df_fitts[df_fitts$HitType=='Hit',], x = ~TargetNumber, y = ~DeltaTime
+          data = r$df_fitts[r$df_fitts$HitType=='Hit',], x = ~TargetNumber, y = ~DeltaTime
         ) %>%
 
           layout(
@@ -406,7 +416,7 @@ server <- function(input, output, session) {
         plot_ly(
           type = "scatter",
           mode = "markers",
-          color = df_fitts$InputType
+          color = r$df_fitts$InputType
           # colors = pal,
         ) %>%
           layout(
@@ -416,7 +426,7 @@ server <- function(input, output, session) {
           )
       )
       # Fitts plot with regression line and equation
-      fittsRegPlotX <- ggplot(df_fitts[df_fitts$HitType=='Hit',], aes(FittsID, DeltaTime)) +
+      fittsRegPlotX <- ggplot(r$df_fitts[r$df_fitts$HitType=='Hit',], aes(FittsID, DeltaTime)) +
         xlab("ID") +
         theme_bw() +
         geom_point()
@@ -426,12 +436,12 @@ server <- function(input, output, session) {
       my.formula <- y ~ x
       # FittsLRcomp <-
       output$fittsLRPlot <- renderPlot({
-        req(!is.na(df_fitts))
-        req(!is.null(df_fitts))
+        req(!is.na(r$df_fitts))
+        req(!is.null(r$df_fitts))
         # graphreq: checks that the minimum data is needed to produce the graph.
-        graphreq = nrow(df_fitts %>% filter(HitType=="Hit") %>% distinct(InputResponders))
+        graphreq = nrow(r$df_fitts %>% filter(HitType=="Hit") %>% distinct(InputResponders))
         validate(need(graphreq > 1, paste("This fitts graph needs data from at least two input responders. Only",graphreq,"Available.")), errorClass = "vis")        
-        FittsLRcompGG <- ggplot(df_fitts[df_fitts$HitType=='Hit',], aes(FittsID, DeltaTime, colour = InputResponders)) +
+        FittsLRcompGG <- ggplot(r$df_fitts[r$df_fitts$HitType=='Hit',], aes(FittsID, DeltaTime, colour = InputResponders)) +
           geom_smooth(method = "lm", fill = NA) +
           ylab("movement time + confirmation in seconds") +
           xlab("ID") +
@@ -443,12 +453,12 @@ server <- function(input, output, session) {
       })
       
       output$fittsLRSinglePlot <- renderPlot({
-        req(!is.na(df_fitts))
-        req(!is.null(df_fitts))
+        req(!is.na(r$df_fitts))
+        req(!is.null(r$df_fitts))
         # graphreq: checks that the minimum data is needed to produce the graph.
-        graphreq = nrow(df_fitts %>% filter(HitType=="Hit") %>% distinct(InputResponders))
+        graphreq = nrow(r$df_fitts %>% filter(HitType=="Hit") %>% distinct(InputResponders))
         validate(need(graphreq > 1, paste("This fitts graph needs data from at least two input responders. Only",graphreq,"Available.")), errorClass = "vis")        
-        fittsLRSinglePlot <- ggplot(df_fitts[df_fitts$HitType=='Hit',], aes(FittsID, DeltaTime, group =InputResponders, colour = InputResponders)) +
+        fittsLRSinglePlot <- ggplot(r$df_fitts[r$df_fitts$HitType=='Hit',], aes(FittsID, DeltaTime, group =InputResponders, colour = InputResponders)) +
           geom_smooth(method = "lm", fill = NA) +
           ylab("movement time + confirmation in seconds") +
           xlab("ID") +
@@ -461,12 +471,12 @@ server <- function(input, output, session) {
       # renderPlotly(ggplotly(p = FittsLRcomp) %>%
       #                                   config(scrollZoom = TRUE))
       output$fittsLRPlotPressure <- renderPlot({
-        req(!is.na(df_fitts))
-        req(!is.null(df_fitts))
+        req(!is.na(r$df_fitts))
+        req(!is.null(r$df_fitts))
         # graphreq: checks that the minimum data is needed to produce the graph.
-        graphreq = nrow(df_fitts  %>% filter(InputType=="pressuresensor", HitType=="Hit") %>% distinct(InputResponders))
+        graphreq = nrow(r$df_fitts  %>% filter(InputType=="pressuresensor", HitType=="Hit") %>% distinct(InputResponders))
         validate(need(graphreq > 1, paste("This fitts graph needs data from the pressure sensor with at least two input responders. Only",graphreq,"Available.")), errorClass = "vis")        
-        FittsLRcompPress <- ggplot(df_fitts[df_fitts$InputType == "pressuresensor" & df_fitts$HitType=='Hit', ], aes(FittsID, DeltaTime, colour = InputResponders)) +
+        FittsLRcompPress <- ggplot(r$df_fitts[r$df_fitts$InputType == "pressuresensor" & r$df_fitts$HitType=='Hit', ], aes(FittsID, DeltaTime, colour = InputResponders)) +
           geom_smooth(method = "lm", fill = NA) +
           ylab("movement time + confirmation in seconds") +
           xlab("ID") +
@@ -478,12 +488,12 @@ server <- function(input, output, session) {
       })
 
       output$fittsDeviceComp <- renderPlot({
-        req(!is.na(df_fitts))
-        req(!is.null(df_fitts))
+        req(!is.na(r$df_fitts))
+        req(!is.null(r$df_fitts))
         # graphreq: checks that the minimum data is needed to produce the graph.
-        graphreq = nrow(df_fitts %>% filter(HitType=="Hit") %>% distinct(InputType))
+        graphreq = nrow(r$df_fitts %>% filter(HitType=="Hit") %>% distinct(InputType))
         validate(need(graphreq > 1, paste("This fitts graph needs data from at least two input types (devices). Only",graphreq,"Available.")), errorClass = "vis")        
-        fittsDeviceCompPlot <- ggplot(df_fitts[df_fitts$HitType=='Hit',], aes(FittsID, DeltaTime, colour = InputType)) +
+        fittsDeviceCompPlot <- ggplot(r$df_fitts[r$df_fitts$HitType=='Hit',], aes(FittsID, DeltaTime, colour = InputType)) +
           geom_smooth(method = "lm", fill = NA) +
           ylab("movement time + confirmation in seconds") +
           xlab("ID") +
@@ -495,12 +505,12 @@ server <- function(input, output, session) {
       })
 
       output$fittsDeviceCompSPlot <- renderPlot({
-        req(!is.na(df_fitts))
-        req(!is.null(df_fitts))
+        req(!is.na(r$df_fitts))
+        req(!is.null(r$df_fitts))
         # graphreq: checks that the minimum data is needed to produce the graph.
-        graphreq = nrow(df_fitts %>% filter(HitType=="Hit") %>% distinct(InputType))
+        graphreq = nrow(r$df_fitts %>% filter(HitType=="Hit") %>% distinct(InputType))
         validate(need(graphreq > 1, paste("This fitts graph needs data from at least two input types (devices). Only",graphreq,"Available.")), errorClass = "vis")        
-        fittsDeviceCompSPlot <- ggplot(df_fitts[df_fitts$HitType=='Hit',], aes(FittsID, DeltaTime,  colour = InputType)) +
+        fittsDeviceCompSPlot <- ggplot(r$df_fitts[r$df_fitts$HitType=='Hit',], aes(FittsID, DeltaTime,  colour = InputType)) +
           geom_smooth(method = "lm", fill = NA) +
           ylab("movement time + confirmation in seconds") +
           xlab("ID") +
@@ -511,7 +521,7 @@ server <- function(input, output, session) {
       })
       
       output$fittsDeviceCompAgg <- renderPlot({
-        fittsDeviceCompAggPlot <- ggplot(df_fittsAgg, aes(FittsID, meanMT, colour = InputResponders)) +
+        fittsDeviceCompAggPlot <- ggplot(r$df_fittsAgg, aes(FittsID, meanMT, colour = InputResponders)) +
           geom_smooth(method = "lm", fill = NA) +
           ylab("movement time + confirmation in seconds") +
           xlab("ID") +
@@ -523,7 +533,7 @@ server <- function(input, output, session) {
       })
 
       output$fittsLearning <- renderPlot({
-        fittsDeviceCompAggPlot <- ggplot(df_fittsAgg, aes(FittsID, meanMT, colour = InputResponders)) +
+        fittsDeviceCompAggPlot <- ggplot(r$df_fittsAgg, aes(FittsID, meanMT, colour = InputResponders)) +
           geom_smooth(method = "lm", fill = NA) +
           ylab("movement time + confirmation in seconds") +
           xlab("ID") +
@@ -540,19 +550,19 @@ server <- function(input, output, session) {
       #      output$fittsLRLearnPlot <- renderPlotly(ggplotly(p = FittsLRLearn) %>%
       #                                           config(scrollZoom = TRUE))
     } 
-    else if (subject == "Tunnel") {
-      print(paste("df_tunnel filtered nrow:", nrow(df_tunnel)))
-      output$tunnelHitType <- renderText(paste(length(df_tunnel$ID[df_tunnel$HitType == "Hit"]), " Successful Hits", sep = " "))
-      output$tunnelWrongHits <- renderText(paste(length(df_tunnel$ID[df_tunnel$HitType == "Miss"]), " Errors", sep = " "))
-      output$tunnelAverage <- renderText(paste("Average time : ", format(mean(df_tunnel$DeltaTime)), sep = " "))
-      output$tunnelType <- renderText(paste("Input Type :", unique(df_tunnel$InputType), sep = " "))
-      output$tunnelRespond <- renderText(paste("Input Responder :", unique(df_tunnel$InputResponder), sep = " "))
+    else if (r$subject == "Tunnel") {
+      print(paste("df_tunnel filtered nrow:", nrow(r$df_tunnel)))
+      output$tunnelHitType <- renderText(paste(length(r$df_tunnel$ID[r$df_tunnel$HitType == "Hit"]), " Successful Hits", sep = " "))
+      output$tunnelWrongHits <- renderText(paste(length(r$df_tunnel$ID[r$df_tunnel$HitType == "Miss"]), " Errors", sep = " "))
+      output$tunnelAverage <- renderText(paste("Average time : ", format(mean(r$df_tunnel$DeltaTime)), sep = " "))
+      output$tunnelType <- renderText(paste("Input Type :", unique(r$df_tunnel$InputType), sep = " "))
+      output$tunnelRespond <- renderText(paste("Input Responder :", unique(r$df_tunnel$InputResponder), sep = " "))
 
       output$tunnelTestDetails <- renderPlotly(
         plot_ly(
           type = "scatter",
           mode = "markers",
-          data = df_tunnel[df_tunnel$HitType=='Hit',], x = ~TargetNumber, y = ~DeltaTime
+          data = r$df_tunnel[r$df_tunnel$HitType=='Hit',], x = ~TargetNumber, y = ~DeltaTime
         ) %>%
           layout(
             xaxis = list(title = "TargetNumber"),
@@ -561,12 +571,12 @@ server <- function(input, output, session) {
           )
       )
       output$tunnelLRPlot <- renderPlot({
-        req(!is.na(df_tunnel))
-        req(!is.null(df_tunnel))
+        req(!is.na(r$df_tunnel))
+        req(!is.null(r$df_tunnel))
         # graphreq: checks that the minimum data is needed to produce the graph.
-        graphreq = nrow(df_tunnel %>% filter(HitType=="Hit") %>% distinct(InputResponders))
+        graphreq = nrow(r$df_tunnel %>% filter(HitType=="Hit") %>% distinct(InputResponders))
         validate(need(graphreq > 1, paste("This tunnel graph needs data from at least two input responders. Only",graphreq,"Available.")), errorClass = "vis")        
-        TunnelLRcompGG <- ggplot(df_tunnel[df_tunnel$HitType=='Hit',], aes(aspectRatio, DeltaTime, colour = InputResponders)) +
+        TunnelLRcompGG <- ggplot(r$df_tunnel[r$df_tunnel$HitType=='Hit',], aes(aspectRatio, DeltaTime, colour = InputResponders)) +
           geom_smooth(method = "lm", fill = NA) +
           stat_regline_equation() +
           ylab("total movement time") +
@@ -578,12 +588,12 @@ server <- function(input, output, session) {
       })
 
       output$TunnelLRPlotPressure <- renderPlot({
-        req(!is.na(df_tunnel))
-        req(!is.null(df_tunnel))
+        req(!is.na(r$df_tunnel))
+        req(!is.null(r$df_tunnel))
         # graphreq: checks that the minimum data is needed to produce the graph.
-        graphreq = nrow(df_tunnel %>% filter(InputType=="pressuresensor",HitType=="Hit") %>% distinct(InputResponders))
+        graphreq = nrow(r$df_tunnel %>% filter(InputType=="pressuresensor",HitType=="Hit") %>% distinct(InputResponders))
         validate(need(graphreq > 1, paste("This tunnel graph needs data from the pressure sensor with at least two input responders. Only",graphreq,"Available.")), errorClass = "vis")        
-        TunnelLRcompPress <- ggplot(df_tunnel[df_tunnel$InputType == "pressuresensor" & df_tunnel$HitType=='Hit', ], aes(aspectRatio, DeltaTime, colour = InputResponders)) +
+        TunnelLRcompPress <- ggplot(r$df_tunnel[r$df_tunnel$InputType == "pressuresensor" & r$df_tunnel$HitType=='Hit', ], aes(aspectRatio, DeltaTime, colour = InputResponders)) +
           geom_smooth(method = "lm", fill = NA) +
           stat_regline_equation() +
           ylab("total movement time") +
@@ -594,19 +604,19 @@ server <- function(input, output, session) {
         print(TunnelLRcompPress)
       })
       
-      }else if (subject == "DHR") {
-        print(paste("df_DHR filtered nrow:", nrow(df_DHR)))
-        output$DHRHitType <- renderText(paste(length(df_DHR$ID[df_DHR$HitType == "Hit"]), " Successful Hits", sep = " "))
-        output$DHRWrongHits <- renderText(paste(length(df_DHR$ID[df_DHR$HitType == "Miss"]), " Errors", sep = " "))
-        output$DHRAverage <- renderText(paste("Average time : ", format(mean(df_DHR$DeltaTime)), sep = " "))
-        output$DHRType <- renderText(paste("Input Type :", unique(df_DHR$InputType), sep = " "))
-        output$DHRRespond <- renderText(paste("Input Responder :", unique(df_DHR$InputResponder), sep = " "))
+      }else if (r$subject == "DHR") {
+        print(paste("df_DHR filtered nrow:", nrow(r$df_DHR)))
+        output$DHRHitType <- renderText(paste(length(r$df_DHR$ID[r$df_DHR$HitType == "Hit"]), " Successful Hits", sep = " "))
+        output$DHRWrongHits <- renderText(paste(length(r$df_DHR$ID[r$df_DHR$HitType == "Miss"]), " Errors", sep = " "))
+        output$DHRAverage <- renderText(paste("Average time : ", format(mean(r$df_DHR$DeltaTime)), sep = " "))
+        output$DHRType <- renderText(paste("Input Type :", unique(r$df_DHR$InputType), sep = " "))
+        output$DHRRespond <- renderText(paste("Input Responder :", unique(r$df_DHR$InputResponder), sep = " "))
         
         output$tunnelTestDetails <- renderPlotly(
           plot_ly(
             type = "scatter",
             mode = "markers",
-            data = df_tunnel[df_tunnel$HitType=='Hit',], x = ~TargetNumber, y = ~DeltaTime
+            data = r$df_tunnel[r$df_tunnel$HitType=='Hit',], x = ~TargetNumber, y = ~DeltaTime
           ) %>%
             layout(
               xaxis = list(title = "TargetNumber"),
@@ -619,7 +629,7 @@ server <- function(input, output, session) {
             # geom_smooth(method = "lm", fill = NA) +
             # stat_regline_equation() +
             
-            geom_point(data=df_DHR[df_DHR$HitType=='Hit',],mapping=aes(x=ObjectWidthCm*10/CDGain, y=DeltaTime),colour="blue",size=3)+
+            geom_point(data=r$df_DHR[r$df_DHR$HitType=='Hit',],mapping=aes(x=ObjectWidthCm*10/CDGain, y=DeltaTime),colour="blue",size=3)+
               geom_line()+geom_point(colour="Red",size=5) +
           ylab("total movement time") +
             xlab("target size in mm (in motor space)") +
