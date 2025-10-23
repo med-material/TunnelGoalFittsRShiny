@@ -12,9 +12,9 @@ ui <- fluidPage(
       4,
       column(1, style = "margin-top : 20px; text-align: right;", icon("user", class = "fa-2x", lib = "font-awesome")),
       column(11,
-        style = "margin-top : 20px; text-align: center;",
-        actionButton("CsvButton","Upload CSV"),
-        selectInput("emailSelect", NULL, choices = c("Press Upload CSV to Upload Data." = -1))
+             style = "margin-top : 20px; text-align: center;",
+             actionButton("CsvButton","Upload CSV"),
+             selectInput("emailSelect", NULL, choices = c("Press Upload CSV to Upload Data." = "-1"))
       )
     )
   ),
@@ -24,7 +24,7 @@ ui <- fluidPage(
   #  subjectChooser ----------------
   tabsetPanel(
     id = "subjectChooser", type = "tabs",
-
+    
     tabPanel(
       value = "Goal", id = "Goal", strong("Goal Test"),
       navlistPanel(
@@ -40,47 +40,32 @@ ui <- fluidPage(
           textOutput("goalType"),
           textOutput("goalRespond")
         ),
-        # tabPanel("Input Responder Comparison",
-        #      plotlyOutput("goalComparison"),
-        #      tags$div(class = "vizcontrols-explainer"),
-
         tabPanel(
           "Input Responder Comparison",
           plotOutput("goalLRPlot"),
           plotOutput("goalLRSinglePlot")
-          # plotlyOutput("fittsRegPlot"),
-          # tags$div(class = "vizcontrols-explainer"),
         ),
-        
         tabPanel(
           "Pressure Input Comparison",
           plotOutput("goalLRPressurePlot")
         ),
-
         tabPanel(
           "Input Device Comparison",
           plotOutput("GoalDeviceComp"),
           plotOutput("GoalDeviceCompSPlot")
-          
-          # plotlyOutput("fittsRegPlot"),
-          # tags$div(class = "vizcontrols-explainer")
         ),
-
         tabPanel(
           "Input Device Comparison Agg by PID",
           plotOutput("GoalDeviceCompAgg")
-          # plotlyOutput("fittsRegPlot"),
-          # tags$div(class = "vizcontrols-explainer")
         )
       )
     ),
-    # PanelsFitts ---------------------------------------------------------------
+    
     tabPanel(
       value = "Fitts", id = "Fitts", strong("Fitts Law Test"),
       navlistPanel(
         widths = c(4, 8),
         "Choose Visualization:",
-
         tabPanel(
           "Test Details",
           plotlyOutput("fittsTestDetails"),
@@ -95,45 +80,23 @@ ui <- fluidPage(
           "Input Responder Comparison",
           plotOutput("fittsLRPlot"),
           plotOutput("fittsLRSinglePlot")
-          # plotlyOutput("fittsRegPlot"),
-          # tags$div(class = "vizcontrols-explainer")
         ),
         tabPanel(
           "Pressure Input Responder comparison",
           plotOutput("fittsLRPlotPressure")
         ),
-
         tabPanel(
           "Input Device Comparison",
           plotOutput("fittsDeviceComp"),
           plotOutput("fittsDeviceCompSPlot")
-          # plotlyOutput("fittsRegPlot"),
-          # tags$div(class = "vizcontrols-explainer")
         ),
-
         tabPanel(
           "Input Device Comparison Agg by PID",
           plotOutput("fittsDeviceCompAgg")
-          # plotlyOutput("fittsRegPlot"),
-          # tags$div(class = "vizcontrols-explainer")
         )
-
-        # ,
-        # tabPanel("Input Responder Comparison",
-        #        plotlyOutput("fittsLRLearnPlot"),
-        #         tags$div(class = "vizcontrols-explainer")
-        # )
-        # ,
-        # tabPanel("Fitts LR progress",
-        #          plotlyOutput("fittsLRLearnPlot"),
-        #          tags$div(class = "vizcontrols-explainer")
-        # )
       )
     ),
-    # PanelTunnel ---------------------------------------------------------------
-
-
-
+    
     tabPanel(
       value = "Tunnel", id = "Tunnel", strong("Tunnel Test"),
       navlistPanel(
@@ -152,7 +115,6 @@ ui <- fluidPage(
         tabPanel(
           "Input Responder Comparison",
           plotOutput("tunnelLRPlot")
-          #       tags$div(class = "vizcontrols-explainer")
         ),
         tabPanel(
           "Pressure Input Responder comparison",
@@ -160,6 +122,7 @@ ui <- fluidPage(
         )
       )
     ),
+    
     tabPanel(
       value = "DHR", id = "DHR", strong("DHR test"),
       navlistPanel(
@@ -175,7 +138,6 @@ ui <- fluidPage(
     ),
     
     # Rest of Page ---------------------------------------------------------------
-
     tags$footer()
   )
 )
